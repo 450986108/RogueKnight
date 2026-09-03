@@ -226,15 +226,24 @@ body {
   filter: drop-shadow(0 4px 0 #241505) drop-shadow(0 8px 18px rgba(0,0,0,.8));
   margin-bottom: 2px;
 }
-#menuKnight { margin: 6px auto 2px; display: block; filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)); }
+/* 尺寸必须用 CSS 钉死：main.js 为高分屏清晰会把画布属性尺寸放大为 240*DPR，
+ * 若无 CSS 宽高约束，布局盒随 devicePixelRatio 膨胀（DPR=2 时高达 540px），
+ * 菜单纵列被撑爆 → 标题顶出上边、按钮推出下边（手机横屏 / 桌面缩放 >100% 复现）。 */
+#menuKnight { width: 240px; height: 270px; margin: 6px auto 2px; display: block; filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)); }
 .menu-help { color: #d9c398; font-size: 15px; line-height: 1.9; margin: 4px 0 6px; text-shadow: 0 2px 3px #000; }
 .menu-help b { color: #ffe9b0; }
 
-/* 开始入口：桌面端 / 移动端 双按钮 */
-.start-group { margin-top: 12px; }
-.start-label { color: #8a7350; font-size: 14px; letter-spacing: 6px; text-shadow: 0 2px 3px #000; }
-.start-btns { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
-.start-btns .btn.big { margin-top: 8px; }
+/* 开始入口：桌面端 / 移动端 双按钮，锚定在菜单覆盖层左下/右下角。
+ * 绝对定位不参与居中列排布 —— 无论中部内容多高，开始按钮始终贴舞台框，永不离开可视区。 */
+.start-corner { position: absolute; left: 76px; bottom: 34px; text-align: center; }
+.start-corner.right { left: auto; right: 76px; }
+.start-corner .btn.big { margin-top: 0; }
+.start-cap { margin-top: 5px; font-size: 13px; letter-spacing: 2px; color: #8a7350; text-shadow: 0 2px 3px #000; }
+.start-label {
+  position: absolute; left: 0; right: 0; bottom: 52px;
+  text-align: center;
+  color: #8a7350; font-size: 14px; letter-spacing: 6px; text-shadow: 0 2px 3px #000;
+}
 /* 上次使用的入口：金色描边 + "上次"角标 */
 .btn { position: relative; }
 .btn.last-used {

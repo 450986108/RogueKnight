@@ -9,7 +9,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" type="image/png" href="img/stelato.png?v=1">
 <title>星寰骑士 STELATO Knight</title>
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 <div id="rotateHint">🔄 建议横屏游玩</div>
@@ -51,13 +51,17 @@
         <p class="dim">击杀足够多的怪物即可进入下一关（共 20 关，过关回满血；通过第 10 关额外升 1 级）<br>
         升级时随机刷新 4 选 1 强化或武器 —— 撑到最后，拯救王国！</p>
       </div>
-      <div class="start-group">
-        <p class="start-label">── 选 择 操 作 方 式 ──</p>
-        <div class="start-btns">
-          <button class="btn big" id="btnStartDesk" title="键盘 + 鼠标">🖥 桌面端</button>
-          <button class="btn big" id="btnStartTouch" title="触屏双摇杆">📱 移动端</button>
-        </div>
-      </div>
+    </div>
+    <!-- 开始入口锚定在覆盖层左下/右下角（不参与居中列排布）：
+         中部内容即便在异常环境变高被裁切，开始按钮也永远在舞台框内可见可点 -->
+    <div class="start-corner">
+      <button class="btn big" id="btnStartDesk" title="键盘 + 鼠标">🖥 桌面端</button>
+      <p class="start-cap">键盘 + 鼠标</p>
+    </div>
+    <p class="start-label">── 选 择 操 作 方 式 ──</p>
+    <div class="start-corner right">
+      <button class="btn big" id="btnStartTouch" title="触屏双摇杆">📱 移动端</button>
+      <p class="start-cap">触屏双摇杆</p>
     </div>
   </div>
 
