@@ -143,9 +143,10 @@ const CONFIG = {
     /* ---- 近战扩展 ---- */
     shadow: {
       name: "影刃", type: "melee",
-      dmg: 7, cd: 0.28, range: 95, arc: 100, thrust: true, anim: 0.17,
+      dmg: 7, cd: 0.28, range: 95, arc: 100, thrust: true, anim: 0.34,
+      hits: 2, hit2At: 0.68,        // 双匕分持两手，一次出手左右依次各刺一记（各结算一次 dmg）
       knockback: 30,
-      desc: "双手匕首疯狂连刺，攻速极快但距离很短",
+      desc: "双匕分持双手依次连刺，一次出手两段伤害，攻速极快但距离很短",
     },
     hammer: {
       name: "破甲战锤", type: "melee",
@@ -182,7 +183,7 @@ const CONFIG = {
     },
     prism: {
       name: "光棱法杖", type: "prism",
-      dmg: 5, cd: 0.16, range: 430, width: 30,
+      dmg: 2, cd: 0.16, range: 430, width: 30,
       closeBonus: 1.0,           // 贴脸 ×2 → 射程端 ×1 线性递减
       desc: "持续引导的激光束，距离越近伤害越高",
     },

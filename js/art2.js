@@ -134,7 +134,7 @@ Object.assign(Art, {
       ctx.fillStyle = sp.glove;
       ell(ctx, hx, hy, kp.gloveR, kp.gloveR); ctx.fill(); ctx.stroke();
     };
-    if (!hasShield && !twoHanded) restArm(-1);
+    if (!hasShield && !twoHanded && primary !== "shadow") restArm(-1);   // 影刃左臂持副匕（见下），不垂手
     if (!primary) restArm(1);
 
     // ---- 肩甲（双层圆弧 + 铆钉） ----
@@ -235,22 +235,20 @@ Object.assign(Art, {
       ctx.restore();
     }
 
-    // ---- 左臂：盾牌（拥有且非双手持时永远举向瞄准方向；盾击时持盾臂向前顶出） ----
-    if (hasShield && !twoHanded) {
-      const angS = p.aim + idleSway;
+    // ---- 左臂：影刃副匕（主手影刃且左手无盾时，双匕分持两手；突刺后半程左匕接续刺出） ----
+    if (primary === "shadow" && !hasShield) {
+      const offPose = (pose && pose.off) ? pose.off : null;
+      const angO = p.aim + idleSway + (offPose ? (offPose.ang || 0) : -0.12);
+      const extO = offPose ? (offPose.ext || 0) : 2;
       const shx = -kp.shoulderX, shy = -36 + bob;
-      let extS = 0;
-      if (p.thrust && p.thrust.id === "shield" && p.thrust.t01 < 1) {
-        extS = Math.sin(Math.min(p.thrust.t01 * 1.4, 1) * Math.PI) * 16;   // 盾击：盾面撞击前顶
-      }
-      const hx = shx + Math.cos(angS) * (kp.armLen + extS);
-      const hy = shy + Math.sin(angS) * (kp.armLen + extS);
+      const hx = shx + Math.cos(angO) * (kp.armLen + extO);
+      const hy = shy + Math.sin(angO) * (kp.armLen + extO);
       this._armorArm(ctx, shx, shy, hx, hy, sp);
       ctx.save();
       ctx.translate(hx, hy);
-      ctx.rotate(angS);
-      this.weaponInHand(ctx, "shield");
-      // 持盾手（黑色机械手套，握在盾后缘可见）
+      ctx.rotate(angO + (offPose ? (offPose.wrist || 0) : 0));
+      this.weaponInHand(ctx, "shadow");
+      // 副匕手（黑色机械手套，覆在握柄上）
       ctx.strokeStyle = OUT; ctx.lineWidth = OUT_W;
       ctx.fillStyle = sp.glove;
       ell(ctx, 2, 0, kp.gloveR, kp.gloveR); ctx.fill(); ctx.stroke();
@@ -282,6 +280,29 @@ Object.assign(Art, {
       if (twoHanded) {
         ell(ctx, -32, 0, kp.gloveR, kp.gloveR); ctx.fill(); ctx.stroke();
       }
+      ctx.restore();
+    }
+
+    // ---- 左臂：盾牌（绘于右臂主武器之后 —— 剑盾合持时盾面压在剑与手图层最上面） ----
+    // 拥有且非双手持时永远举向瞄准方向；盾击时持盾臂向前顶出
+    if (hasShield && !twoHanded) {
+      const angS = p.aim + idleSway;
+      const shx = -kp.shoulderX, shy = -36 + bob;
+      let extS = 0;
+      if (p.thrust && p.thrust.id === "shield" && p.thrust.t01 < 1) {
+        extS = Math.sin(Math.min(p.thrust.t01 * 1.4, 1) * Math.PI) * 16;   // 盾击：盾面撞击前顶
+      }
+      const hx = shx + Math.cos(angS) * (kp.armLen + extS);
+      const hy = shy + Math.sin(angS) * (kp.armLen + extS);
+      this._armorArm(ctx, shx, shy, hx, hy, sp);
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(angS);
+      this.weaponInHand(ctx, "shield");
+      // 持盾手（黑色机械手套，握在盾后缘可见）
+      ctx.strokeStyle = OUT; ctx.lineWidth = OUT_W;
+      ctx.fillStyle = sp.glove;
+      ell(ctx, 2, 0, kp.gloveR, kp.gloveR); ctx.fill(); ctx.stroke();
       ctx.restore();
     }
 
@@ -417,9 +438,33 @@ Object.assign(Art, {
           else { const k = eo(seg(t, 0.6, 1)); ext = 42 * (1 - k); wr = dir * 0.2 * (1 - k); }
           return { ext, wrist: wr, lean: Math.max(0, ext) * 0.2 };
         }
-        case "shadow": {       // 影刃：双手匕首左右交替速刺（dir 交替刺出侧）
-          const k = Math.sin(Math.min(t * 1.5, 1) * Math.PI);
-          return { ang: dir * 0.16 * k, ext: k * 21, wrist: dir * 0.22 * k, lean: k * 3 };
+        case "shadow": {       // 影刃：双匕交叉连刺 —— 右匕上路平刺（0.10–0.30），左匕下路斜刺接续（0.56–0.74）
+          // 可读性关键：两条刺道上下分开成 X 形，非刺手收于胸前且刀尖朝上，握点不重叠
+          const mxp = (A, B, k) => ({
+            ang: A.ang + (B.ang - A.ang) * k, ext: A.ext + (B.ext - A.ext) * k, wrist: A.wrist + (B.wrist - A.wrist) * k,
+          });
+          const Rg = { ang: 0, ext: 0, wrist: 0 };                              // 右戒备（=无姿态 idle，端点无跳变）
+          const Rw = { ang: dir * 0.2, ext: -6, wrist: dir * -1.0 };             // 右起蓄（后拉，刀尖上挑蓄势）
+          const Rs = { ang: dir * -0.12, ext: 19, wrist: dir * -0.35 };          // 右刺出（上路平刺，握点x≈42，手腕由上挑压平）
+          const Rc = { ang: -0.1, ext: -6, wrist: -1.4 };                        // 右收腔（贴胸，刀尖竖直朝上，离开刺道）
+          const Lg = { ang: -0.12, ext: 2, wrist: 0 };                           // 左戒备（斜内收微前抬，=idle 副匕）
+          const Lc = { ang: -0.42, ext: -6, wrist: -1.48 };                      // 左收腔（体侧贴胸，刀尖上挑过头侧，避开头盔）
+          const Lw = { ang: -0.3, ext: -7, wrist: -1.0 };                        // 左起蓄（自收腔拧转，刀尖仍上挑）
+          const Ls = { ang: 0.34, ext: 24, wrist: -0.1 };                        // 左刺出（下路斜刺，握点y≈-25）
+          let R = Rg, L = Lg, lean = 0;
+          if (t < 0.10) { const k = io(seg(t, 0, 0.10)); R = mxp(Rg, Rw, k); }
+          else if (t < 0.30) {          // 右刺上路 + 左手同步收腔
+            const k = eo(seg(t, 0.10, 0.30));
+            R = mxp(Rw, Rs, k); L = mxp(Lg, Lc, io(seg(t, 0.10, 0.30))); lean = 3 * k;
+          }
+          else if (t < 0.44) { const k = eo(seg(t, 0.30, 0.44)); R = mxp(Rs, Rg, k); L = Lc; lean = 3 * (1 - k); }
+          else if (t < 0.56) { const k = io(seg(t, 0.44, 0.56)); L = mxp(Lc, Lw, k); }             // 左起蓄，右保持戒备
+          else if (t < 0.74) {          // 左刺下路 + 右手同步收腔
+            const k = eo(seg(t, 0.56, 0.74));
+            L = mxp(Lw, Ls, k); R = mxp(Rg, Rc, io(seg(t, 0.56, 0.74))); lean = 3.2 * k;
+          }
+          else { const k = eo(seg(t, 0.74, 1)); L = mxp(Ls, Lg, k); R = mxp(Rc, Rg, k); lean = 3.2 * (1 - k); }
+          return { ang: R.ang, ext: R.ext, wrist: R.wrist, lean, off: L };
         }
         default: {             // 通用突刺兜底：前伸后收
           const k = Math.sin(Math.min(t * 1.6, 1) * Math.PI);

@@ -26,6 +26,20 @@ const Weapons = {
    * 法杖悬浮 —— 自动索敌出手：第 i 把法杖认领第 i 近的敌人，多杖分散不同目标。 */
   update(dt, player, game) {
     if (player.beamT > 0) player.beamT -= dt;
+    // 多段刺结算（影刃 hits:2）：第二把匕首刺出帧（hit2At 对齐左手突刺曲线）再结算一击
+    if (player.thrust && !player.thrust.hit2) {
+      const cfg2 = CONFIG.WEAPONS[player.thrust.id];
+      if (cfg2 && cfg2.hits >= 2 && player.thrust.t01 >= (cfg2.hit2At || 0.6)) {
+        player.thrust.hit2 = true;
+        const w2 = player.weapons.find(x => x.id === player.thrust.id);
+        if (w2) {
+          const aim2 = player.aim;                      // 近战沿玩家瞄准方向
+          FX.lunge(player.x, player.y, aim2, cfg2.range, "#c9b8ff");
+          SFX.thrust();
+          this._meleeConeHit(w2, player, game, aim2);
+        }
+      }
+    }
     let sorted = null;        // 敌人近→远排序表（惰性：有法杖才计算）
     let staffIdx = 0;         // 已锁定目标的法杖序号 → 认领第几近的敌人
     for (const w of player.weapons) {
@@ -62,6 +76,50 @@ const Weapons = {
     return true;
   },
 
+  /* 近战锥形命中结算：扇形范围内所有敌人受伤（多目标）+ 各武器附加效果
+   * （出手瞬间与影刃二段刺共用：同一次出手可按 hits 多次调用，每次独立掷暴击） */
+  _meleeConeHit(w, player, game, aim) {
+    const cfg = CONFIG.WEAPONS[w.id];
+    const targets = game.monstersInCone(player.x, player.y, aim, cfg.range, cfg.arc);
+    for (const m of targets) {
+      const crit = this.rollCrit(player);
+      const dmg = this.dmgOf(w, player) * (crit ? CONFIG.CRIT_MULT : 1);
+      game.hitMonster(m, dmg, crit, player.x, player.y, cfg.knockback);
+      // 破甲战锤：眩晕
+      if (cfg.stun && !m.dead) {
+        m.stunT = Math.max(m.stunT, cfg.stun);
+        FX.text(m.x, m.y - m.radius - 30, "眩晕！", "#ffe14a", 15);
+        FX.ring(m.x, m.y - m.radius, 34, "#ffe14a", 4, 0.3);
+        FX.spark(m.x, m.y - m.radius - 12, "#ffe14a", 5, 90);
+        SFX.stun();
+      }
+      // 链刃：把命中者垂直拉到突刺中线上（沿线聚成一列；保持各自远近，不拉回角色）
+      if (cfg.gather) {
+        const dx = m.x - player.x, dy = m.y - player.y;
+        const fwd = Math.max(60, Math.min(cfg.range - 30, dx * Math.cos(aim) + dy * Math.sin(aim)));
+        const tx = player.x + Math.cos(aim) * fwd;
+        const ty = player.y + Math.sin(aim) * fwd;
+        const off = Math.hypot(tx - m.x, ty - m.y);
+        if (off > 2) {
+          // 击退速度按 6/s 衰减 → 位移≈初速/6；拉力∝偏离距离则刚好收在线上不穿线
+          const gAng = Math.atan2(ty - m.y, tx - m.x);
+          const pull = Math.min(cfg.gather, off * 6.5);
+          m.kb.x += Math.cos(gAng) * pull;
+          m.kb.y += Math.sin(gAng) * pull;
+        }
+        FX.spark(m.x, m.y - m.radius, "#cfe0ff", 4, 80);
+      }
+      // 血镰：击杀回复生命
+      if (cfg.healPerKill && m.dead) {
+        const before = player.hp;
+        player.hp = Math.min(player.maxHp, player.hp + cfg.healPerKill);
+        if (player.hp > before) {
+          FX.text(player.x, player.y - 74, "+" + cfg.healPerKill, "#7dff8a", 16);
+        }
+      }
+    }
+  },
+
   _attack(w, player, game) {
     const cfg = CONFIG.WEAPONS[w.id];
     const aim = cfg.type === "melee" ? player.aim : w.aimAng;   // 法杖朝索敌方向
@@ -87,45 +145,7 @@ const Weapons = {
         FX.slash(player.x, player.y, aim, cfg.range, cfg.arc, slashCol);
         SFX.swing();
       }
-      // 扇形范围内所有敌人受伤（多目标）+ 各武器附加效果
-      const targets = game.monstersInCone(player.x, player.y, aim, cfg.range, cfg.arc);
-      for (const m of targets) {
-        const crit = this.rollCrit(player);
-        const dmg = this.dmgOf(w, player) * (crit ? CONFIG.CRIT_MULT : 1);
-        game.hitMonster(m, dmg, crit, player.x, player.y, cfg.knockback);
-        // 破甲战锤：眩晕
-        if (cfg.stun && !m.dead) {
-          m.stunT = Math.max(m.stunT, cfg.stun);
-          FX.text(m.x, m.y - m.radius - 30, "眩晕！", "#ffe14a", 15);
-          FX.ring(m.x, m.y - m.radius, 34, "#ffe14a", 4, 0.3);
-          FX.spark(m.x, m.y - m.radius - 12, "#ffe14a", 5, 90);
-          SFX.stun();
-        }
-        // 链刃：把命中者垂直拉到突刺中线上（沿线聚成一列；保持各自远近，不拉回角色）
-        if (cfg.gather) {
-          const dx = m.x - player.x, dy = m.y - player.y;
-          const fwd = Math.max(60, Math.min(cfg.range - 30, dx * Math.cos(aim) + dy * Math.sin(aim)));
-          const tx = player.x + Math.cos(aim) * fwd;
-          const ty = player.y + Math.sin(aim) * fwd;
-          const off = Math.hypot(tx - m.x, ty - m.y);
-          if (off > 2) {
-            // 击退速度按 6/s 衰减 → 位移≈初速/6；拉力∝偏离距离则刚好收在线上不穿线
-            const gAng = Math.atan2(ty - m.y, tx - m.x);
-            const pull = Math.min(cfg.gather, off * 6.5);
-            m.kb.x += Math.cos(gAng) * pull;
-            m.kb.y += Math.sin(gAng) * pull;
-          }
-          FX.spark(m.x, m.y - m.radius, "#cfe0ff", 4, 80);
-        }
-        // 血镰：击杀回复生命
-        if (cfg.healPerKill && m.dead) {
-          const before = player.hp;
-          player.hp = Math.min(player.maxHp, player.hp + cfg.healPerKill);
-          if (player.hp > before) {
-            FX.text(player.x, player.y - 74, "+" + cfg.healPerKill, "#7dff8a", 16);
-          }
-        }
-      }
+      this._meleeConeHit(w, player, game, aim);
     }
     else if (cfg.type === "lightning") {
       // 朝本杖认领的目标放电（_autoAim 已锁定，此处兜底最近敌人）
