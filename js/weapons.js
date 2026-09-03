@@ -68,7 +68,8 @@ const Weapons = {
   },
 
   /* 悬浮法杖自动索敌：从近→远排序表中认领第 idx 近的射程内敌人
-   * （敌人比法杖少时环绕复用）。有目标 → 记录朝向与目标引用；无目标 → 挂起冷却。 */
+   * （敌人比法杖少时环绕复用）。有目标 → 记录朝向与目标引用；无目标 → 挂起冷却。
+   * 光棱例外：单体持续照射，锁定目标直到其死亡或脱离射程才换目标（不追最近跳变）。 */
   _autoAim(w, player, game, sorted, idx) {
     const cfg = CONFIG.WEAPONS[w.id];
     const inRange = sorted.filter(m => Math.hypot(m.x - player.x, m.y - player.y) - m.radius <= cfg.range);
@@ -76,6 +77,11 @@ const Weapons = {
       w.hasTarget = false; w.target = null;
       if (w.cd < 0.1) w.cd = 0.1;   // 目标出现后 ≤0.1s 内出手
       return false;
+    }
+    if (w.id === "prism" && w.target && !w.target.dead && inRange.includes(w.target)) {
+      w.hasTarget = true;           // 目标仍在射程内：光棱继续锁定，不重新认领
+      w.aimAng = Math.atan2(w.target.y - 26 - player.y, w.target.x - player.x);
+      return true;
     }
     const tgt = inRange[idx % inRange.length];
     w.hasTarget = true; w.target = tgt;
