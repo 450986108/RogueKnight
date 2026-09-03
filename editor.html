@@ -89,7 +89,304 @@
   <h2>预 览</h2>
   <div class="row"><label>主手武器</label><select id="selWeapon"></select></div>
   <div class="row"><label>盾牌（左臂）</label><input type="checkbox" id="ckShield"></div>
-  <div class="row"><label>动画演示</label><input type="checkbox" id="ckCheckbox" hidden></div>
+  <div class="row"><label>动画演示</label><input type="checkbox" id="ckAnim" checked></div>
+  <div class="row"><label>瞄准角度</label><input type="range" id="rgAim" min="-3.14" max="3.14" step="0.01" value="0.18"><span class="val" id="vAim"></span></div>
+  <div class="row"><label>画布背景</label>
+    <span class="bgsw on" data-bg="#3a4a35" title="草地"></span>
+    <span class="bgsw" data-bg="#23262e" title="深灰"></span>
+    <span class="bgsw" data-bg="#cfd4da" title="浅灰"></span>
+  </div>
+
+  <h2>配 色</h2>
+  <div id="colors"></div>
+  <div class="row"><label>描边粗细</label><input type="range" id="rgOutW" min="1" max="5" step="0.5"><span class="val" id="vOutW"></span></div>
+
+  <h2>形 体</h2>
+  <div id="shapes"></div>
+
+  <h2>导 出</h2>
+  <div class="btnrow">
+    <button id="btnGen">生成代码</button>
+    <button id="btnCopy">复制到剪贴板</button>
+    <button id="btnReset">重置全部</button>
+  </div>
+  <textarea id="txOut" readonly placeholder="点「生成代码」后此处显示可粘贴进 js/art.js 的参数区块"></textarea>
+  <span id="copyState"></span>
+  <div class="note">
+    · 配色与形体改动仅在本预览页生效；游戏需导出贴回 js/art.js。<br>
+    · 描边色/粗细为全局风格（怪物与武器同步变化）。<br>
+    · 徽章文字过宽时会自动缩小字号以适配徽章。
+  </div>
 </div>
+
+<script src="js/config.js"></script>
+<script src="js/art.js"></script>
+<script src="js/art2.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ---- 默认值快照（重置用） ---- */
+  const DEF = {
+    OUT: OUT, OUT_W: OUT_W,
+    SP: Object.assign({}, SP),
+    KP: Object.assign({}, KP),
+  };
+
+  /* ---- 画布 ---- */
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const CW = 780, CH = 780, ZOOM = 6, KX = 380, KY = 660;
+  cv.width = CW * DPR; cv.height = CH * DPR;
+  cv.style.width = CW + "px"; cv.style.height = CH + "px";
+  ctx.scale(DPR, DPR);
+  let bg = "#3a4a35";
+
+  const p = {
+    x: 0, y: 0, aim: 0.18, moving: false, walkT: 0,
+    iframe: 0, hurtFlash: 0, dead: false,
+    swing: null, thrust: null, pulse: null,
+    weapons: [{ id: "sword" }],
+  };
+
+  let held = "sword", anim = true, t = 0;
+
+  function syncWeapons() {
+    p.weapons = [];
+    if (held) p.weapons.push({ id: held });
+    if (document.getElementById("ckShield").checked) p.weapons.push({ id: "shield" });
+  }
+
+  function frame(now) {
+    const dt = Math.min((now - (frame.last || now)) / 1000, 1 / 30);
+    frame.last = now;
+    t += dt;
+    if (anim) {
+      p.moving = true;
+      p.walkT += dt;
+      const cyc = t % 2.2;
+      if (held && CONFIG.WEAPONS[held] && CONFIG.WEAPONS[held].type === "melee" && cyc < 0.3) {
+        p.swing = { id: held, t01: cyc / 0.3, dir: 1 };
+      } else if (held && CONFIG.WEAPONS[held] && CONFIG.WEAPONS[held].type !== "melee" && cyc < 0.3) {
+        p.pulse = { id: held, t01: cyc / 0.3 };
+      } else { p.swing = null; p.pulse = null; }
+    } else { p.moving = false; p.swing = null; p.pulse = null; }
+
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, CW, CH);
+    // 地面参照光圈
+    ctx.fillStyle = "rgba(255,225,140,0.12)";
+    ctx.beginPath();
+    ctx.ellipse(KX, KY + 14, 150, 40, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(KX, KY);
+    ctx.scale(ZOOM, ZOOM);
+    Art.knight(ctx, p, t);
+    ctx.restore();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* ---- 控件规格 ---- */
+  const COLOR_DEFS = [
+    ["OUT", "OUT", "描边色"],
+    ["helm", "SP", "头盔主色"], ["helmLt", "SP", "头盔亮部"],
+    ["chest", "SP", "胸甲主色"], ["chestLt", "SP", "胸甲亮部"], ["chestDk", "SP", "胸甲暗部"],
+    ["dark", "SP", "深色件"], ["pauldron", "SP", "肩甲"], ["hi", "SP", "高光/铆钉"],
+    ["visor", "SP", "面罩"], ["eye", "SP", "眼睛发光"],
+    ["accent", "SP", "橙色点缀"], ["glove", "SP", "手套"],
+    ["badgeA", "SP", "徽章亮"], ["badgeB", "SP", "徽章暗"],
+  ];
+  const SHAPE_DEFS = [
+    ["headY", "头盔高度", -70, -40, 0.5, 1],
+    ["helmW", "盔体宽", 10, 24, 0.5, 1],
+    ["helmH", "盔体高", 9, 22, 0.5, 1],
+    ["finScale", "鳍角大小", 0.3, 2, 0.05, 2],
+    ["visorW", "面罩宽", 12, 28, 0.5, 1],
+    ["visorH", "面罩高", 5, 14, 0.5, 1],
+    ["eyeGlow", "眼光晕强度", 0, 15, 0.5, 1],
+    ["eyeSize", "眼大小", 0.5, 1.8, 0.05, 2],
+    ["earR", "耳罩半径", 2, 8, 0.2, 1],
+    ["bodyW", "躯干宽", 0.7, 1.5, 0.02, 2],
+    ["bodyH", "躯干高", 0.7, 1.5, 0.02, 2],
+    ["badgeW", "徽章宽", 10, 26, 0.5, 1],
+    ["badgeH", "徽章高", 7, 15, 0.5, 1],
+    ["pauldronScale", "肩甲大小", 0.5, 1.8, 0.05, 2],
+    ["shoulderX", "肩位间距", 8, 20, 0.5, 1],
+    ["armLen", "手臂长度", 3, 16, 0.5, 1],
+    ["gloveR", "手套大小", 3, 9, 0.5, 1],
+    ["bootScale", "靴子大小", 0.6, 1.6, 0.05, 2],
+  ];
+
+  /* ---- 生成配色控件 ---- */
+  const colorsBox = document.getElementById("colors");
+  COLOR_DEFS.forEach(function (d) {
+    const key = d[0], src = d[1], label = d[2];
+    const row = document.createElement("div");
+    row.className = "row";
+    const lb = document.createElement("label");
+    lb.textContent = label;
+    const ip = document.createElement("input");
+    ip.type = "color";
+    ip.value = (src === "SP") ? SP[key] : OUT;
+    const hex = document.createElement("span");
+    hex.className = "hex"; hex.textContent = ip.value;
+    ip.addEventListener("input", function () {
+      if (src === "SP") SP[key] = ip.value; else OUT = ip.value;
+      hex.textContent = ip.value;
+    });
+    row.appendChild(lb); row.appendChild(ip); row.appendChild(hex);
+    row._sync = function () {
+      ip.value = (src === "SP") ? SP[key] : OUT;
+      hex.textContent = ip.value;
+    };
+    colorsBox.appendChild(row);
+    (colorsBox._rows || (colorsBox._rows = [])).push(row);
+  });
+
+  /* ---- 生成形体控件 ---- */
+  const shapesBox = document.getElementById("shapes");
+  SHAPE_DEFS.forEach(function (d) {
+    const key = d[0], label = d[1], mn = d[2], mx = d[3], st = d[4], fix = d[5];
+    if (key === "badgeText") return;
+    const row = document.createElement("div");
+    row.className = "row";
+    const lb = document.createElement("label");
+    lb.textContent = label;
+    const ip = document.createElement("input");
+    ip.type = "range"; ip.min = mn; ip.max = mx; ip.step = st;
+    ip.value = KP[key];
+    const val = document.createElement("span");
+    val.className = "val";
+    const show = function () { val.textContent = Number(ip.value).toFixed(fix); };
+    show();
+    ip.addEventListener("input", function () { KP[key] = Number(ip.value); show(); });
+    row.appendChild(lb); row.appendChild(ip); row.appendChild(val);
+    row._sync = function () { ip.value = KP[key]; show(); };
+    shapesBox.appendChild(row);
+    (shapesBox._rows || (shapesBox._rows = [])).push(row);
+  });
+  // 徽章文字（文本输入）
+  (function () {
+    const row = document.createElement("div");
+    row.className = "row";
+    const lb = document.createElement("label");
+    lb.textContent = "徽章文字";
+    const ip = document.createElement("input");
+    ip.type = "text"; ip.maxLength = 12; ip.value = KP.badgeText;
+    ip.addEventListener("input", function () { KP.badgeText = ip.value || " "; });
+    row.appendChild(lb); row.appendChild(ip);
+    row._sync = function () { ip.value = KP.badgeText; };
+    shapesBox.appendChild(row);
+    (shapesBox._rows || (shapesBox._rows = [])).push(row);
+  })();
+
+  /* ---- 描边粗细 ---- */
+  const rgOutW = document.getElementById("rgOutW");
+  const vOutW = document.getElementById("vOutW");
+  function syncOutW() { rgOutW.value = OUT_W; vOutW.textContent = Number(OUT_W).toFixed(1); }
+  rgOutW.addEventListener("input", function () { OUT_W = Number(rgOutW.value); vOutW.textContent = OUT_W.toFixed(1); });
+  syncOutW();
+
+  /* ---- 预览控件 ---- */
+  const selWeapon = document.getElementById("selWeapon");
+  const optNone = document.createElement("option");
+  optNone.value = ""; optNone.textContent = "（无 · 徒手）";
+  selWeapon.appendChild(optNone);
+  Object.keys(CONFIG.WEAPONS).forEach(function (id) {
+    if (id === "shield") return;
+    const o = document.createElement("option");
+    o.value = id; o.textContent = CONFIG.WEAPONS[id].name || id;
+    selWeapon.appendChild(o);
+  });
+  selWeapon.value = held;
+  selWeapon.addEventListener("change", function () { held = selWeapon.value || null; syncWeapons(); });
+  document.getElementById("ckShield").addEventListener("change", syncWeapons);
+  document.getElementById("ckAnim").addEventListener("change", function (e) { anim = e.target.checked; });
+
+  const rgAim = document.getElementById("rgAim");
+  const vAim = document.getElementById("vAim");
+  function syncAim() { p.aim = Number(rgAim.value); vAim.textContent = p.aim.toFixed(2); }
+  rgAim.addEventListener("input", syncAim);
+  syncAim();
+
+  document.querySelectorAll(".bgsw").forEach(function (sw) {
+    sw.style.background = sw.dataset.bg;
+    sw.addEventListener("click", function () {
+      bg = sw.dataset.bg;
+      document.querySelectorAll(".bgsw").forEach(function (s) { s.classList.remove("on"); });
+      sw.classList.add("on");
+    });
+  });
+
+  /* ---- 导出 ---- */
+  function fmt(n) { return (Math.round(n * 100) / 100).toString(); }
+  document.getElementById("btnGen").addEventListener("click", function () {
+    const spKeys = ["helm", "helmLt", "chest", "chestLt", "chestDk", "dark", "pauldron",
+                    "hi", "visor", "eye", "accent", "glove", "badgeA", "badgeB"];
+    const kpNum = SHAPE_DEFS.filter(function (d) { return d[0] !== "badgeText"; }).map(function (d) { return d[0]; });
+    let s = "";
+    s += '/* ↓↓↓ 形象参数区：editor.html 导出后整体替换此区块 ↓↓↓ */\n';
+    s += 'var OUT = "' + OUT + '";            // 统一描边色（var：编辑器可运行时修改）\n';
+    s += 'var OUT_W = ' + fmt(OUT_W) + ';                  // 统一描边宽度\n\n';
+    s += '/* 享界骑士（外太空盔甲）配色 */\nconst SP = {\n';
+    const labels = {
+      helm: "头盔深灰蓝", chest: "胸甲蓝灰", visor: "面罩 / 冰蓝发光眼",
+      accent: "橙色机械点缀 / 黑手套", badgeA: "徽章银白渐变",
+    };
+    spKeys.forEach(function (k, i) {
+      let line = "  " + k + ': "' + SP[k] + '"';
+      // 对齐注释（近似）
+      while (line.length < 44) line += " ";
+      if (k === "helmLt") line += "// 头盔深灰蓝";
+      else if (labels[k]) line += "// " + labels[k];
+      s += line + "," + "\n";
+    });
+    s += '};\n\n';
+    s += '/* 享界骑士形体参数（editor.html 滑杆实时调整） */\nconst KP = {\n';
+    kpNum.forEach(function (k) {
+      let line = "  " + k + ": " + fmt(KP[k]);
+      while (line.length < 30) line += " ";
+      s += line + ",\n";
+    });
+    let tb = '  badgeText: "' + KP.badgeText + '"';
+    while (tb.length < 30) tb += " ";
+    s += tb + ",\n";
+    s += '};\n';
+    s += '/* ↑↑↑ 形象参数区结束 ↑↑↑ */\n';
+    document.getElementById("txOut").value = s;
+    document.getElementById("copyState").textContent = "已生成 " + new Date().toLocaleTimeString();
+  });
+
+  document.getElementById("btnCopy").addEventListener("click", function () {
+    const tx = document.getElementById("txOut");
+    if (!tx.value) { document.getElementById("btnGen").click(); }
+    tx.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    const st = document.getElementById("copyState");
+    if (ok) { st.textContent = "已复制 ✓"; }
+    else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(tx.value).then(
+        function () { st.textContent = "已复制 ✓"; },
+        function () { st.textContent = "复制失败，请手动 Ctrl+C"; }
+      );
+    } else { st.textContent = "复制失败，请手动 Ctrl+C"; }
+  });
+
+  /* ---- 重置 ---- */
+  document.getElementById("btnReset").addEventListener("click", function () {
+    OUT = DEF.OUT; OUT_W = DEF.OUT_W;
+    Object.keys(DEF.SP).forEach(function (k) { SP[k] = DEF.SP[k]; });
+    Object.keys(DEF.KP).forEach(function (k) { KP[k] = DEF.KP[k]; });
+    (colorsBox._rows || []).forEach(function (r) { r._sync(); });
+    (shapesBox._rows || []).forEach(function (r) { r._sync(); });
+    syncOutW();
+  });
+})();
+</script>
 </body>
 </html>
