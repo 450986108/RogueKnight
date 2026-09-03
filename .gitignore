@@ -1,0 +1,10 @@
+# 开发素材与备份（体积大，不需要进仓库）
+备份/
+参考图/
+harmony/
+test/
+
+# 系统杂项
+Thumbs.db
+.DS_Store
+Desktop.ini
