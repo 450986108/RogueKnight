@@ -32,54 +32,55 @@ const CONFIG = {
    * startWeapons      初始武器（默认阔剑；秘法自带双法杖）
    * xp / pickup       经验倍率 / 拾取半径倍率 */
   HEROES: {
+/* lore: 模糊人物设定（卡片按行显示，每行 ≤12 字、最多 3 行，避免溢出；连读见详情栏） */
     wanderer: {
       name: "流浪骑士", role: "均衡",
       hp: 100, speed: 220, slots: 2,
       as: 1, healPerKill: 0, armor: 0, regen: 0, shieldDelay: 0,
       startWeapons: null, xp: 1, pickup: 1,
-      desc: "属性均衡的经典骑士，一切强度的基准",
+      lore: ["在荒野中流浪的骑士", "以一把旧剑走遍大陆", "各方面能力均衡"],
     },
     astro: {
       name: "享界骑士", role: "重装",   // STELATO 原味太空甲（与游戏名"星寰骑士"区分）
       hp: 130, speed: 187, slots: 3,
       as: 1, healPerKill: 0, armor: 0, regen: 0, shieldDelay: 0,
       startWeapons: null, xp: 1, pickup: 1,
-      desc: "生命 +30%，移速 −15%，初始武器槽 3（多一件起步装备）",
+      lore: ["征战星际的享界骑士", "装备机械重铠和智能系统", "血量更高，多一个武器槽"],
     },
     holy: {
       name: "圣辉骑士", role: "守护",
       hp: 85, speed: 220, slots: 2,
       as: 1, healPerKill: 0, armor: 0, regen: 0, shieldDelay: 4.5,
       startWeapons: null, xp: 1, pickup: 1,
-      desc: "生命 −15%；脱离战斗 4.5 秒后生成圣盾，完全格挡一次伤害",
+      lore: ["恪守圣誓的守护骑士", "血量略低，脱战片刻", "圣盾可完全挡下一击"],
     },
     gale: {
       name: "疾风骑士", role: "迅捷",
       hp: 80, speed: 231, slots: 2,
       as: 1.25, healPerKill: 0, armor: 0, regen: 0, shieldDelay: 0,
       startWeapons: null, xp: 1, pickup: 1,
-      desc: "攻击速度 +25%，移速 +5%，生命 −20%",
+      lore: ["来去如风的迅捷剑客", "出手与脚步都极快", "血量偏低"],
     },
     blood: {
       name: "血怒骑士", role: "续航",
       hp: 85, speed: 220, slots: 2,
       as: 1, healPerKill: 1, armor: 0, regen: 0, shieldDelay: 0,
       startWeapons: null, xp: 1, pickup: 1,
-      desc: "生命 −15%；每次击杀怪物回复 1 点生命，越战越勇",
+      lore: ["大杀四方的血怒骑士", "能从鲜血中恢复自身", "血量略低，越战越勇"],
     },
     iron: {
       name: "铁壁骑士", role: "坦克",
       hp: 95, speed: 220, slots: 2,
       as: 1, healPerKill: 0, armor: 4, regen: 0.5, shieldDelay: 0,
       startWeapons: null, xp: 1, pickup: 1,
-      desc: "护甲 +4（受击固定减免），每秒回复 0.5 生命，生命 −5%",
+      lore: ["身披重甲的钢铁堡垒", "寻常刀剑难伤分毫", "伤势亦会缓缓自愈"],
     },
     arcana: {
       name: "秘法骑士", role: "炮台",
       hp: 70, speed: 220, slots: 3,
       as: 1, healPerKill: 0, armor: 0, regen: 0, shieldDelay: 0,
       startWeapons: ["fire", "lightning"], xp: 1, pickup: 1,
-      desc: "生命 −30%；初始自带火焰 + 闪电双法杖（替换阔剑），开局即自动索敌",
+      lore: ["钻研奥术的秘法骑士", "血量单薄，攻伐全交法杖", "火焰与闪电自动索敌"],
     },
   },
   HERO_ORDER: ["wanderer", "astro", "holy", "gale", "blood", "iron", "arcana"],

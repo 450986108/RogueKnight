@@ -111,7 +111,6 @@ const UI = {
     grid.innerHTML = "";
     this._heroCards = {};
     this.heroPreviews = [];                 // main.js 每帧驱动的小人预览
-    const B = CONFIG.HEROES.wanderer;       // 基准：流浪骑士
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     for (const id of CONFIG.HERO_ORDER) {
       const H = CONFIG.HEROES[id];
@@ -125,12 +124,7 @@ const UI = {
       role.className = "hrole"; role.textContent = "「" + H.role + "」";
       const stats = document.createElement("div");
       stats.className = "hstats";
-      stats.innerHTML =
-        this._statLine("生命", H.hp, B.hp, H.hp) + "　" +
-        this._statLine("速度", H.speed, B.speed, H.speed) + "<br>" +
-        this._statLine("攻速", H.as, B.as, "×" + H.as) + "　" +
-        this._statLine("槽", H.slots, B.slots, H.slots) + "<br>" +
-        this._traitLine(id);
+      stats.innerHTML = H.lore.join("<br>");   // 模糊人物设定，每行一短句（≤12 字）
       div.append(cv, name, role, stats);
       div.onclick = () => { this._selectHero(id); SFX.pick(); };
       grid.append(div);
@@ -159,26 +153,7 @@ const UI = {
     try { localStorage.setItem("rk_hero", id); } catch (e) { }
     for (const k in this._heroCards) this._heroCards[k].classList.toggle("selected", k === id);
     const H = CONFIG.HEROES[id];
-    this.el.heroDetail.textContent = `【${H.name}】${H.desc}`;
-  },
-
-  /* 数值行：与流浪骑士基准比较，高于基准绿色↑ / 低于基准红色↓ */
-  _statLine(label, val, base, txt) {
-    if (val === base) return `${label} ${txt}`;
-    return `${label} <span class="${val > base ? "up" : "dn"}">${txt}${val > base ? "↑" : "↓"}</span>`;
-  },
-
-  _traitLine(id) {
-    switch (id) {
-      case "wanderer": return "一切强度的基准";
-      case "astro": return "重装起步，多一件武器";
-      case "holy": return "脱战 4.5s 出圣盾";
-      case "gale": return "轻甲迅捷，剑速极快";
-      case "blood": return "击杀回复 1 生命";
-      case "iron": return "护甲+4 · 每秒回血";
-      case "arcana": return "自带火焰+闪电法杖";
-    }
-    return "";
+    this.el.heroDetail.textContent = `【${H.name}】${H.lore.join("，")}`;
   },
 
   /* ---------------- HUD ---------------- */
