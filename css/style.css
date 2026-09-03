@@ -1,0 +1,506 @@
+/* ================= 流浪骑士 RogueKnight — 羊皮纸/木纹 UI ================= */
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+html, body { touch-action: none; overscroll-behavior: none; }
+body { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+
+body {
+  background: radial-gradient(ellipse at 50% 30%, #2b2016 0%, #17100a 70%, #0d0906 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  overflow: hidden;
+}
+
+#stage { position: relative; }
+
+#game {
+  display: block;
+  border: 6px solid #5b4230;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px #2e2118, 0 18px 60px rgba(0,0,0,.7), inset 0 0 40px rgba(0,0,0,.2);
+  background: #6da34d;
+  cursor: crosshair;
+}
+
+.hidden { display: none !important; }
+
+/* ================= 受击红晕 ================= */
+#hurtFx {
+  position: absolute; inset: 6px;
+  pointer-events: none;
+  border-radius: 6px;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(200, 20, 20, .55) 100%);
+  opacity: 0;
+  transition: opacity .35s ease-out;
+  z-index: 5;
+}
+#hurtFx.on { opacity: 1; transition: none; }
+
+/* ================= HUD ================= */
+#hud { position: absolute; inset: 6px; pointer-events: none; z-index: 6; }
+
+#hud-tl { position: absolute; top: 12px; left: 14px; width: 260px; }
+#hud-tc { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); text-align: center; width: 320px; }
+#hud-tr { position: absolute; top: 10px; right: 14px; display: flex; gap: 8px; }
+
+#levelLabel {
+  font-family: "KaiTi", "STKaiti", "Microsoft YaHei", serif;
+  font-size: 24px; font-weight: bold; color: #ffe9b0;
+  text-shadow: 0 0 6px rgba(0,0,0,.9), 0 2px 0 #000, 2px 0 0 #000, -2px 0 0 #000, 0 -2px 0 #000;
+  margin-bottom: 4px;
+}
+
+.bar {
+  position: relative;
+  height: 22px;
+  background: #1c150e;
+  border: 2px solid #000;
+  border-radius: 6px;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.08);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.bar .fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .15s ease-out;
+  box-shadow: inset 0 3px 4px rgba(255,255,255,.35), inset 0 -4px 5px rgba(0,0,0,.3);
+}
+.bar.hp .fill   { background: linear-gradient(#ff8a7a, #d92b1f 55%, #a01414); }
+.bar.xp .fill   { background: linear-gradient(#b3ff8a, #4fb52f 55%, #2e7d1d); }
+.bar.kill .fill { background: linear-gradient(#ffe28a, #e8a62a 55%, #b06f14); }
+.bar.xp { height: 14px; }
+
+/* 血条延迟残影：受伤时暖白条定格片刻，再缓慢收缩追上真实血量 */
+.bar .fill.ghost {
+  background: linear-gradient(#fff8e8, #ffd9a0 55%, #e8a05a);
+  transition: none;
+}
+/* 低血量警示：血条红光脉动 */
+.bar.hp.low { animation: hpLowPulse 0.9s ease-in-out infinite; }
+@keyframes hpLowPulse {
+  0%, 100% { box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 0 4px rgba(255,60,40,.35); }
+  50%      { box-shadow: inset 0 2px 5px rgba(0,0,0,.8), 0 0 14px rgba(255,60,40,.95); }
+}
+/* 升级瞬间 XP 条流光闪光 */
+.bar.xp .fill.lvl { animation: xpFlash 0.55s ease-out; }
+@keyframes xpFlash {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(2.6) saturate(1.5); }
+  100% { filter: brightness(1); }
+}
+
+.bar-text {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: bold; color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  letter-spacing: 1px;
+}
+.bar.xp .bar-text { font-size: 11px; }
+
+/* 武器图标格 */
+.wslot {
+  position: relative;
+  width: 52px; height: 52px;
+  background: linear-gradient(#3a2c1e, #241a10);
+  border: 2px solid #000;
+  border-radius: 9px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.06);
+  display: flex; align-items: center; justify-content: center;
+}
+.wslot canvas { width: 44px; height: 44px; }
+.wslot .lv {
+  position: absolute; right: 2px; bottom: 1px;
+  font-size: 11px; font-weight: bold; color: #ffd873;
+  text-shadow: 0 1px 2px #000;
+}
+.wslot .cdmask {
+  position: absolute; inset: 0;
+  background: rgba(10, 8, 5, .72);
+  border-radius: 7px;
+  transform-origin: bottom;
+}
+
+/* 关卡横幅 */
+#levelBanner {
+  position: absolute; top: 32%; left: 0; right: 0;
+  text-align: center;
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 64px; font-weight: bold; color: #ffe9b0;
+  text-shadow: 0 0 14px rgba(0,0,0,.9), 0 4px 0 #1a120a, 3px 0 0 #1a120a, -3px 0 0 #1a120a;
+  pointer-events: none; z-index: 7;
+  animation: bannerIn 2.2s ease-out forwards;
+}
+@keyframes bannerIn {
+  0%   { opacity: 0; transform: scale(1.6); }
+  15%  { opacity: 1; transform: scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(.94); }
+}
+
+/* ================= 覆盖层通用 ================= */
+.overlay {
+  position: absolute; inset: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(12, 8, 4, .62);
+  backdrop-filter: blur(2px);
+  border-radius: 6px;
+  z-index: 10;
+}
+.overlay.nodim { background: transparent; backdrop-filter: none; pointer-events: none; }
+
+/* 羊皮纸面板 */
+.panel {
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255,246,214,.5), transparent 55%),
+    linear-gradient(160deg, #ecd9ab 0%, #dcc186 45%, #cbb079 100%);
+  border: 5px solid #6d5233;
+  border-radius: 16px;
+  box-shadow: 0 0 0 3px #2e2118, 0 16px 50px rgba(0,0,0,.65), inset 0 0 34px rgba(120, 86, 40, .35);
+  padding: 30px 46px;
+  text-align: center;
+  color: #4a3116;
+  max-width: 86%;
+}
+
+.gold-title {
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 40px; font-weight: bold;
+  color: #7a4a10;
+  text-shadow: 0 1px 0 #fff3cf, 0 3px 6px rgba(90, 60, 20, .4);
+  margin-bottom: 10px;
+}
+.gold-title.big-font { font-size: 52px; }
+.red-title {
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 44px; font-weight: bold;
+  color: #8c1a12;
+  text-shadow: 0 1px 0 #ffe1cf, 0 3px 6px rgba(90, 20, 10, .35);
+  margin-bottom: 10px;
+}
+.subtitle { color: #6d5230; font-size: 15px; margin-bottom: 12px; letter-spacing: 2px; }
+.subtitle.small { font-size: 13px; margin-bottom: 4px; }
+.dim { color: #8a7350; font-size: 13px; }
+
+/* 木质按钮 */
+.btn {
+  font-family: "KaiTi", "STKaiti", "Microsoft YaHei", serif;
+  font-size: 20px; font-weight: bold; letter-spacing: 4px;
+  color: #ffe9b0;
+  background: linear-gradient(#8a6238, #6b4726 55%, #54371d);
+  border: 3px solid #2e2013;
+  border-radius: 10px;
+  padding: 10px 34px;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px #a07c48, 0 5px 0 #241708, 0 8px 14px rgba(0,0,0,.5), inset 0 2px 3px rgba(255,230,170,.35);
+  text-shadow: 0 2px 3px rgba(0,0,0,.7);
+  transition: transform .08s, filter .12s;
+}
+.btn:hover { filter: brightness(1.18); transform: translateY(-2px); }
+.btn:active { transform: translateY(2px); box-shadow: 0 0 0 2px #a07c48, 0 2px 0 #241708, 0 4px 8px rgba(0,0,0,.5), inset 0 2px 3px rgba(255,230,170,.35); }
+.btn.big { font-size: 24px; padding: 13px 46px; margin-top: 18px; }
+.panel .btn + .btn { margin-top: 12px; }
+
+/* ================= 主菜单 ================= */
+#menu { background: radial-gradient(ellipse at center, rgba(20,14,8,.35), rgba(10,7,4,.78)); }
+.menu-inner { text-align: center; }
+.title {
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 84px; font-weight: bold; letter-spacing: 14px;
+  background: linear-gradient(#fff3c4 15%, #f4c14e 45%, #a86f1d 75%, #f4c14e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px 0 #241505) drop-shadow(0 8px 18px rgba(0,0,0,.8));
+  margin-bottom: 2px;
+}
+#menuKnight { margin: 6px auto 2px; display: block; filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)); }
+.menu-help { color: #d9c398; font-size: 15px; line-height: 1.9; margin: 4px 0 6px; text-shadow: 0 2px 3px #000; }
+.menu-help b { color: #ffe9b0; }
+
+/* 开始入口：桌面端 / 移动端 双按钮 */
+.start-group { margin-top: 12px; }
+.start-label { color: #8a7350; font-size: 14px; letter-spacing: 6px; text-shadow: 0 2px 3px #000; }
+.start-btns { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.start-btns .btn.big { margin-top: 8px; }
+/* 上次使用的入口：金色描边 + "上次"角标 */
+.btn { position: relative; }
+.btn.last-used {
+  box-shadow: 0 0 0 2px #ffe9a0, 0 5px 0 #241708, 0 0 20px rgba(255, 220, 130, .5), inset 0 2px 3px rgba(255, 230, 170, .35);
+}
+.btn.last-used::after {
+  content: "上次";
+  position: absolute; top: -10px; right: -10px;
+  font-size: 11px; font-weight: bold; letter-spacing: 1px;
+  padding: 2px 7px;
+  color: #4a3116;
+  background: linear-gradient(#ffe9b0, #e8c877);
+  border: 2px solid #6d5233;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .5);
+}
+
+/* ================= 竖屏提示（移动端竖屏时出现，横屏自动隐藏） ================= */
+#rotateHint {
+  display: none;
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 60; pointer-events: none;
+  padding: 8px 22px;
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 17px; font-weight: bold; letter-spacing: 3px;
+  color: #ffe9b0;
+  background: rgba(30, 20, 10, .88);
+  border: 2px solid #6d5233;
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px #2e2118, 0 6px 18px rgba(0, 0, 0, .6);
+  text-shadow: 0 2px 3px #000;
+}
+@media (orientation: portrait) {
+  body.touch #rotateHint { display: block; }
+}
+
+/* ================= 升级选卡 ================= */
+.levelup-inner { text-align: center; }
+#cards { display: flex; gap: 22px; justify-content: center; margin-top: 16px; }
+/* 替换武器选择：最多 6 把 + 返回按钮 → 允许换行，按钮独占一行 */
+#cards.picker { flex-wrap: wrap; max-width: 900px; margin-left: auto; margin-right: auto; }
+#cards .back-btn { flex-basis: 100%; margin-top: 4px; font-size: 17px; padding: 9px 30px; }
+
+.card {
+  width: 186px; height: 250px;
+  background:
+    radial-gradient(ellipse at 25% 8%, rgba(255, 248, 220, .6), transparent 50%),
+    linear-gradient(165deg, #eedaac, #dcc186 50%, #c9ad74 100%);
+  border: 4px solid #6d5233;
+  border-radius: 14px;
+  box-shadow: 0 0 0 2px #2e2118, 0 10px 22px rgba(0,0,0,.55), inset 0 0 22px rgba(120, 86, 40, .3);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 12px 12px;
+  cursor: pointer;
+  transition: transform .13s ease, box-shadow .13s ease, filter .13s;
+}
+.card:hover {
+  transform: translateY(-10px) scale(1.04);
+  filter: brightness(1.07);
+  box-shadow: 0 0 0 2px #2e2118, 0 0 26px rgba(255, 216, 120, .55), 0 18px 30px rgba(0,0,0,.6), inset 0 0 22px rgba(120, 86, 40, .3);
+}
+.card:active { transform: translateY(-4px) scale(1.0); }
+/* 选卡发牌入场：依次弹入（staggered deal-in） */
+#cards .card {
+  animation: cardIn 0.5s cubic-bezier(0.2, 1.35, 0.4, 1) backwards;
+}
+#cards .card:nth-child(1) { animation-delay: 0.05s; }
+#cards .card:nth-child(2) { animation-delay: 0.15s; }
+#cards .card:nth-child(3) { animation-delay: 0.25s; }
+#cards .card:nth-child(4) { animation-delay: 0.35s; }
+#cards .card:nth-child(5) { animation-delay: 0.45s; }
+@keyframes cardIn {
+  from { transform: translateY(48px) scale(0.7) rotate(-4deg); opacity: 0; }
+  to   { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+}
+.card canvas { width: 84px; height: 84px; margin-bottom: 8px; filter: drop-shadow(0 3px 3px rgba(60,40,10,.35)); }
+.card .cname {
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 22px; font-weight: bold; color: #5a3a12;
+  margin-bottom: 6px;
+}
+.card .cdesc { font-size: 13.5px; line-height: 1.55; color: #6d5230; }
+.card .ctag {
+  margin-top: auto;
+  font-size: 12px; font-weight: bold; letter-spacing: 2px;
+  color: #8c6a35;
+}
+.card.weapon-card .ctag { color: #7d2f16; }
+
+/* ================= 角色选择 ================= */
+.hero-select-inner { max-width: 96%; }
+#heroGrid {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 14px; margin-top: 14px;
+}
+.hero-card {
+  width: 158px; height: 216px;
+  background:
+    radial-gradient(ellipse at 25% 8%, rgba(255, 248, 220, .6), transparent 50%),
+    linear-gradient(165deg, #eedaac, #dcc186 50%, #c9ad74 100%);
+  border: 4px solid #6d5233;
+  border-radius: 14px;
+  box-shadow: 0 0 0 2px #2e2118, 0 10px 22px rgba(0,0,0,.55), inset 0 0 22px rgba(120, 86, 40, .3);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 8px 10px;
+  cursor: pointer;
+  transition: transform .13s ease, box-shadow .13s ease, filter .13s;
+}
+.hero-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  filter: brightness(1.07);
+  box-shadow: 0 0 0 2px #2e2118, 0 0 26px rgba(255, 216, 120, .55), 0 16px 28px rgba(0,0,0,.6), inset 0 0 22px rgba(120, 86, 40, .3);
+}
+.hero-card:active { transform: translateY(-2px) scale(1.0); }
+.hero-card.selected {
+  border-color: #b8862e;
+  box-shadow: 0 0 0 3px #2e2118, 0 0 4px 2px #ffe9a0, 0 0 30px rgba(255, 216, 120, .8), 0 16px 28px rgba(0,0,0,.6), inset 0 0 22px rgba(120, 86, 40, .3);
+}
+.hero-card canvas { width: 96px; height: 108px; margin-bottom: 2px; filter: drop-shadow(0 3px 3px rgba(60,40,10,.35)); }
+.hero-card .hname {
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 20px; font-weight: bold; color: #5a3a12;
+  line-height: 1.2;
+}
+.hero-card .hrole { font-size: 12px; color: #8c6a35; letter-spacing: 2px; margin-top: 1px; }
+.hero-card .hstats { margin-top: 5px; font-size: 12.5px; line-height: 1.5; color: #6d5230; text-align: center; }
+.hero-card .hstats .up { color: #2e7d1d; font-weight: bold; }
+.hero-card .hstats .dn { color: #a02418; font-weight: bold; }
+
+.hero-detail {
+  min-height: 20px; margin-top: 12px;
+  font-size: 15px; color: #ffe9b0; letter-spacing: 1px;
+  text-shadow: 0 2px 3px #000;
+}
+.hero-actions { margin-top: 12px; display: flex; gap: 18px; justify-content: center; align-items: center; }
+.hero-actions .btn { margin-top: 0; }
+
+/* HUD 圣盾指示（圣辉骑士） */
+#shieldPip {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 2px;
+  font-size: 12px; font-weight: bold; color: #ffe9a0;
+  text-shadow: 0 1px 2px #000;
+}
+#shieldPip canvas { width: 22px; height: 24px; filter: drop-shadow(0 0 4px rgba(255,233,160,.7)); }
+#shieldPip.charging canvas { filter: grayscale(.85) brightness(.6); }
+
+/* ================= 过关 / 结算 ================= */
+.transition-panel, .end-panel { min-width: 460px; }
+.banner-ribbon {
+  background: linear-gradient(#a4231a, #7c150e);
+  border: 3px solid #4a0b06;
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px #d8b06a, 0 6px 14px rgba(0,0,0,.4), inset 0 2px 3px rgba(255,180,150,.4);
+  padding: 12px 30px;
+  margin: -52px auto 18px;
+  display: inline-block;
+}
+.banner-ribbon span {
+  font-family: "KaiTi", "STKaiti", serif;
+  font-size: 34px; font-weight: bold; color: #ffe9b0; letter-spacing: 6px;
+  text-shadow: 0 2px 3px rgba(0,0,0,.7);
+}
+.stats { font-size: 17px; line-height: 2.05; color: #5a3f1c; }
+.stats b { color: #8c4a10; font-size: 19px; }
+.small-stats { font-size: 15px; }
+.pause-panel { min-width: 320px; }
+
+/* ================= 触屏双摇杆 ================= */
+/* 结构：#joyL/#joyR（定位锚点，104px 圆盘） > .joy-base > .joy-knob */
+.joy {
+  position: absolute;
+  width: 104px; height: 104px;
+  margin: -52px 0 0 -52px;           /* 锚点即圆心 */
+  display: none;
+  pointer-events: none;
+  z-index: 5;
+}
+.joy-base {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20,14,8,.14) 0 34%, rgba(20,14,8,.42) 72%, rgba(20,14,8,.58) 100%);
+  border: 2px solid rgba(255,233,176,.35);
+  box-shadow: 0 2px 10px rgba(0,0,0,.45), inset 0 0 18px rgba(0,0,0,.35);
+  opacity: .38;
+  transition: opacity .15s;
+}
+.joy.on .joy-base { opacity: .92; }
+.joy-knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 46px; height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f4e2b0, #c9a35c 55%, #7a5a2a 100%);
+  border: 2px solid #2e2013;
+  box-shadow: 0 3px 8px rgba(0,0,0,.55), inset 0 2px 4px rgba(255,240,200,.6);
+}
+.joy-atk .joy-knob {
+  background: radial-gradient(circle at 35% 30%, #ffb0a0, #d9543f 55%, #7a1e14 100%);
+}
+.joy-atk .joy-base { border-color: rgba(255,170,150,.4); }
+
+/* 触屏模式下键鼠提示 ↔ 触屏提示 */
+.touch-only { display: none; }
+body.touch .touch-only { display: block; }
+body.touch .key-only { display: none; }
+
+/* HUD 暂停按钮（触屏模式显示） */
+#btnPause {
+  position: absolute;
+  top: 10px; right: 14px;
+  width: 46px; height: 46px;
+  margin-top: 62px;                  /* 避开上方武器槽 */
+  display: none;
+  pointer-events: auto;
+  font-size: 20px; font-weight: bold; color: #ffe9b0;
+  background: linear-gradient(#8a6238, #6b4726 55%, #54371d);
+  border: 2px solid #2e2013;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px #a07c48, 0 3px 0 #241708, inset 0 2px 3px rgba(255,230,170,.35);
+  text-shadow: 0 2px 3px rgba(0,0,0,.7);
+}
+body.touch #btnPause { display: block; }
+
+/* ================= 小屏（手机横屏 / WebView）适配 ================= */
+@media (max-height: 520px) {
+  .title { font-size: 46px; letter-spacing: 8px; }
+  #menuKnight { width: 120px; height: 135px; }
+  .menu-help { font-size: 12px; line-height: 1.6; }
+  .start-group { margin-top: 6px; }
+  .start-label { font-size: 11px; letter-spacing: 4px; }
+  .start-btns { gap: 12px; margin-top: 4px; }
+  .btn.last-used::after { font-size: 9px; padding: 1px 5px; top: -8px; right: -8px; }
+  #rotateHint { font-size: 14px; padding: 6px 16px; }
+  .subtitle { font-size: 12px; }
+  .btn.big { font-size: 18px; padding: 9px 30px; margin-top: 8px; }
+  .gold-title { font-size: 26px; }
+  .gold-title.big-font { font-size: 32px; }
+  .red-title { font-size: 28px; }
+  .panel { padding: 16px 26px; border-width: 4px; }
+  .stats { font-size: 13px; line-height: 1.7; }
+  .stats b { font-size: 14px; }
+  .banner-ribbon { padding: 6px 18px; margin: -36px auto 10px; }
+  .banner-ribbon span { font-size: 22px; }
+  .btn { font-size: 16px; padding: 8px 24px; }
+  .panel .btn + .btn { margin-top: 8px; }
+  /* 升级 4 卡压缩 */
+  #cards { gap: 10px; margin-top: 8px; }
+  .card { width: 148px; height: 196px; padding: 10px 8px 8px; border-width: 3px; }
+  .card canvas { width: 58px; height: 58px; margin-bottom: 5px; }
+  .card .cname { font-size: 16px; margin-bottom: 4px; }
+  .card .cdesc { font-size: 11px; line-height: 1.4; }
+  .card .ctag { font-size: 10px; }
+  .card:hover { transform: none; }   /* 触屏无 hover */
+  /* HUD 字号微缩 */
+  #levelLabel { font-size: 18px; }
+  #hud-tl { width: 190px; top: 8px; left: 10px; }
+  #hud-tc { top: 6px; width: 240px; }
+  .bar { height: 16px; }
+  .bar.xp { height: 11px; }
+  .bar-text { font-size: 10px; }
+  .wslot { width: 40px; height: 40px; }
+  .wslot canvas { width: 34px; height: 34px; }
+  #btnPause { width: 38px; height: 38px; margin-top: 52px; font-size: 16px; }
+  /* 选人 7 卡压缩 */
+  #heroGrid { gap: 8px; margin-top: 8px; }
+  .hero-card { width: 122px; height: 168px; padding: 5px 5px 7px; border-width: 3px; }
+  .hero-card canvas { width: 68px; height: 76px; }
+  .hero-card .hname { font-size: 15px; }
+  .hero-card .hrole { font-size: 10px; letter-spacing: 1px; }
+  .hero-card .hstats { margin-top: 3px; font-size: 10.5px; line-height: 1.4; }
+  .hero-detail { font-size: 12px; margin-top: 6px; min-height: 16px; }
+  .hero-actions { margin-top: 6px; gap: 12px; }
+  #shieldPip { font-size: 10px; }
+  .joy { width: 88px; height: 88px; margin: -44px 0 0 -44px; }
+  .joy-knob { width: 38px; height: 38px; margin: -19px 0 0 -19px; }
+}
