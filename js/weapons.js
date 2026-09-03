@@ -9,14 +9,21 @@
 
 const Weapons = {
 
-  /* 等级成长：每级 +20% 伤害、+5% 攻速 */
+  /* 等级成长：第 n 次强化 伤害 +(dmgBase+dmgPer×(n-1))%、攻速 +(asBase+asPer×(n-1))%，逐次乘算 */
+  _lvlMult(level, base, per) {
+    let m = 1;
+    for (let n = 1; n < level; n++) m *= 1 + (base + per * (n - 1)) / 100;
+    return m;
+  },
   dmgOf(w, player) {
     const cfg = CONFIG.WEAPONS[w.id];
-    return cfg.dmg * (1 + CONFIG.WEAPON_LVL.dmgPerLvl * (w.level - 1)) * player.mult.dmg;
+    const L = CONFIG.WEAPON_LVL;
+    return cfg.dmg * this._lvlMult(w.level, L.dmgBase, L.dmgPer) * player.mult.dmg;
   },
   cdOf(w, player) {
     const cfg = CONFIG.WEAPONS[w.id];
-    return cfg.cd / (1 + CONFIG.WEAPON_LVL.asPerLvl * (w.level - 1)) / player.mult.as;
+    const L = CONFIG.WEAPON_LVL;
+    return cfg.cd / this._lvlMult(w.level, L.asBase, L.asPer) / player.mult.as;
   },
 
   rollCrit(player) { return Math.random() < player.crit; },

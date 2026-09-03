@@ -40,7 +40,8 @@ class Player {
 
   xpNeeded() { return CONFIG.xpNeeded(this.level); }
 
-  /* 获得经验（不直接弹升级界面，由 Game 统一处理 pending 计数） */
+  /* 获得经验（不直接弹升级界面，由 Game 统一处理 pending 计数）。
+   * 每次升级附带固有成长：生命上限与攻击力小幅提升（数值见 CONFIG.LEVELUP_GROWTH） */
   gainXp(v) {
     this.xp += v;
     let ups = 0;
@@ -48,6 +49,11 @@ class Player {
       this.xp -= this.xpNeeded();
       this.level++;
       ups++;
+      const g = CONFIG.LEVELUP_GROWTH;
+      const add = this.maxHp * g.hpPct / 100;
+      this.maxHp += add;
+      this.hp = Math.min(this.maxHp, this.hp + add);
+      this.mult.dmg *= 1 + g.dmgPct / 100;
     }
     return ups;
   }

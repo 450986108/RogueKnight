@@ -89,6 +89,21 @@ class Game {
     UI.updatePause(SFX.muted);
   }
 
+  /* 重启轮回：放弃本局，回到主菜单重新选择桌面端/移动端入口 */
+  backToMenu() {
+    this.state = "menu";
+    this.player = null;
+    this.monsters.length = 0;
+    this.projectiles.length = 0;
+    this.gems.length = 0;
+    this.pools.length = 0;
+    this.pendingLevelups = 0;
+    FX.reset();
+    UI.hideAllOverlays();
+    UI.hide(UI.el.hud);
+    UI.show(UI.el.menu);
+  }
+
   /* ---------------- 主更新 ---------------- */
   update(dt, input) {
     this.t += dt;

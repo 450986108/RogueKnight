@@ -199,7 +199,10 @@ const CONFIG = {
     "sword", "axe", "lance", "shield", "fire", "lightning", "wind", "water",
     "shadow", "hammer", "chain", "scythe", "ice", "plague", "prism", "gravity",
   ],
-  WEAPON_LVL: { dmgPerLvl: 0.20, asPerLvl: 0.05, max: 5 },   // 每级 +20%伤害 +5%攻速
+  /* 武器升级：第 n 次强化幅度 = base + per×(n-1)，逐次乘算（同属性卡规则）
+   * 伤害 +25/30/35/40%（满级累计 ×3.07），攻速 +5/7/9/11%（满级累计 ×1.36）
+   * 单卡幅度须高于整体卡"力量精进"（+10%起、每次+2.5%），专精收益 > 泛用 */
+  WEAPON_LVL: { dmgBase: 25, dmgPer: 5, asBase: 5, asPer: 2, max: 5 },
 
   /* ---------- 怪物 ---------- */
   MONSTERS: {
@@ -247,6 +250,11 @@ const CONFIG = {
 
   /* ---------- 经验曲线：升到 Lv.(n+1) 所需经验 ---------- */
   xpNeeded: n => 8 + 4 * (n - 1) + Math.floor(0.35 * (n - 1) * (n - 1)),
+
+  /* ---------- 升级固有成长 ----------
+   * 每次升级自动：生命上限 +hpPct%（并回复等量）、整体攻击力 +dmgPct%
+   * 幅度刻意低于怪物每关成长（血 +30%/关、伤 +12%/关），是选卡之外的保底成长 */
+  LEVELUP_GROWTH: { hpPct: 5, dmgPct: 2.5 },
 
   /* ---------- 升级卡池 ----------
    * 强化幅度随强化等级递进：第 n 次获取同一强化时，幅度 = base + per ×(n-1)

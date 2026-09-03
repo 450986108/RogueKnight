@@ -50,6 +50,8 @@ const UI = {
     $("btnAgain").onclick = () => { SFX.ensure(); game.startRun(); };
     $("btnResume").onclick = () => game.togglePause();
     $("btnRestart").onclick = () => { SFX.ensure(); game.startRun(); };
+    $("btnRestartMenu").onclick = () => { SFX.ensure(); game.backToMenu(); };
+    $("btnRetryMenu").onclick = () => { SFX.ensure(); game.backToMenu(); };
     $("btnPause").onclick = () => { SFX.ensure(); game.togglePause(); };   // 触屏 HUD 暂停按钮
     $("btnMute").onclick = () => game.toggleMute();
     // 圣盾指示图标（一次性绘制）
@@ -309,10 +311,13 @@ const UI = {
     }
     const upgradable = p.weapons.filter(w => w.level < CONFIG.WEAPON_LVL.max);
     for (const w of upgradable) {
+      const wl = CONFIG.WEAPON_LVL;
+      const dInc = wl.dmgBase + wl.dmgPer * (w.level - 1);   // 本次为该武器第 w.level 次强化
+      const aInc = wl.asBase + wl.asPer * (w.level - 1);
       pool.push({
         key: "wup:" + w.id, w: CONFIG.WUPGRADE_WEIGHT / upgradable.length,
         icon: w.id, name: `${CONFIG.WEAPONS[w.id].name} 强化`,
-        desc: `等级 Lv.${w.level} → Lv.${w.level + 1}：伤害 +20%，攻速 +5%`,
+        desc: `Lv.${w.level} → Lv.${w.level + 1}：伤害 +${dInc}%，攻速 +${aInc}%`,
         tag: "武器升级", cls: "weapon-card",
         apply: () => { w.level++; this.weaponsDirty = true; },
       });
@@ -358,7 +363,9 @@ const UI = {
     const box = this.el.cards;
     box.innerHTML = "";
     box.classList.remove("picker");
-    this.el.levelupSub.textContent = `骑士等级提升到 Lv.${game.player.level}！`;
+    const g = CONFIG.LEVELUP_GROWTH;
+    this.el.levelupSub.textContent =
+      `骑士等级提升到 Lv.${game.player.level}！固有成长：生命上限 +${g.hpPct}%，攻击力 +${g.dmgPct}%`;
     let chosen = false;
     for (const c of this._cards) {
       const div = document.createElement("div");
