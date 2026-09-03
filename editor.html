@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>享界骑士 · 形象编辑器</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  input { accent-color: #c97b3a; }
+  html, body { height: 100%; }
+  body {
+    font-family: "KaiTi", "STKaiti", "Microsoft YaHei", serif;
+    background: #14100c; color: #e8dcc2;
+    display: flex; overflow: hidden;
+  }
+  /* ---- 左侧画布 ---- */
+  #stage {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: #23262e; position: relative; min-width: 0;
+  }
+  #stage canvas { max-width: 100%; max-height: 100%; box-shadow: 0 0 40px rgba(0,0,0,.6); }
+  #zoomTip {
+    position: absolute; top: 10px; left: 12px; font-size: 13px;
+    color: rgba(255,255,255,.55); letter-spacing: 1px;
+  }
+  /* ---- 右侧面板 ---- */
+  #panel {
+    width: 480px; height: 100%; overflow-y: auto; flex: none;
+    background: linear-gradient(#241c13, #1a140e);
+    border-left: 3px solid #0c0906; padding: 16px 20px 30px;
+  }
+  #panel h1 {
+    font-size: 22px; color: #ffe9b0; letter-spacing: 4px;
+    text-shadow: 0 2px 3px rgba(0,0,0,.7); margin-bottom: 2px;
+  }
+  #panel .sub { font-size: 12px; color: #a08c66; margin-bottom: 14px; line-height: 1.6; }
+  h2 {
+    font-size: 15px; color: #ffcf7d; letter-spacing: 3px;
+    border-bottom: 1px solid #4a3a24; padding-bottom: 4px;
+    margin: 18px 0 10px;
+  }
+  .row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 14px; }
+  .row label { flex: none; width: 108px; color: #d8c9a4; }
+  .row input[type="range"] { flex: 1; accent-color: #c97b3a; }
+  .row input[type="color"] {
+    width: 46px; height: 26px; border: 2px solid #0c0906; border-radius: 5px;
+    background: none; padding: 0; cursor: pointer;
+  }
+  .row .hex { font-size: 12px; color: #8d7a58; width: 72px; font-family: Consolas, monospace; }
+  .row .val { font-size: 12px; color: #ffd98f; width: 52px; text-align: right; font-family: Consolas, monospace; }
+  .row input[type="text"] {
+    flex: 1; background: #171008; border: 2px solid #4a3a24; border-radius: 6px;
+    color: #ffe9b0; font-family: inherit; font-size: 14px; padding: 4px 8px;
+  }
+  .btnrow { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: bold; letter-spacing: 2px;
+    color: #ffe9b0; background: linear-gradient(#8a6238, #6b4726 55%, #54371d);
+    border: 3px solid #2e2013; border-radius: 8px; padding: 7px 16px; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.18); }
+  select {
+    font-family: inherit; font-size: 14px; background: #171008; color: #ffe9b0;
+    border: 2px solid #4a3a24; border-radius: 6px; padding: 4px 8px; flex: 1;
+  }
+  textarea {
+    width: 100%; height: 220px; background: #100b06; color: #c8e6a0;
+    border: 2px solid #4a3a24; border-radius: 6px; padding: 8px;
+    font-family: Consolas, monospace; font-size: 12px; line-height: 1.5;
+    resize: vertical; white-space: pre;
+  }
+  .bgsw { display: inline-block; width: 26px; height: 26px; border-radius: 50%;
+          border: 2px solid #0c0906; cursor: pointer; }
+  .bgsw.on { outline: 3px solid #ffcf7d; }
+  #copyState { font-size: 12px; color: #9fd67a; margin-left: 8px; }
+  .note { font-size: 12px; color: #a08c66; line-height: 1.7; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <span id="zoomTip">6× 放大预览 · 修改即时生效</span>
+  <canvas id="cv"></canvas>
+</div>
+
+<div id="panel">
+  <h1>享界骑士 · 形象编辑器</h1>
+  <div class="sub">调整后点「生成代码」，将输出整体替换 js/art.js 顶部的<br>「形象参数区」注释块之间的内容即可生效。</div>
+
+  <h2>预 览</h2>
+  <div class="row"><label>主手武器</label><select id="selWeapon"></select></div>
+  <div class="row"><label>盾牌（左臂）</label><input type="checkbox" id="ckShield"></div>
+  <div class="row"><label>动画演示</label><input type="checkbox" id="ckCheckbox" hidden></div>
+</div>
+</body>
+</html>
