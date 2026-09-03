@@ -166,12 +166,14 @@
       p.moving = true;
       p.walkT += dt;
       const cyc = t % 2.2;
-      if (held && CONFIG.WEAPONS[held] && CONFIG.WEAPONS[held].type === "melee" && cyc < 0.3) {
+      // 演示节拍随各武器实际 anim 时长（与游戏内一致），不再统一 0.3s
+      const wDur = (held && CONFIG.WEAPONS[held] && CONFIG.WEAPONS[held].anim) || 0.3;
+      if (held && CONFIG.WEAPONS[held] && CONFIG.WEAPONS[held].type === "melee" && cyc < wDur) {
         // 直刺型武器预览 p.thrust（专属突刺曲线），挥砍型预览 p.swing
-        if (CONFIG.WEAPONS[held].thrust) p.thrust = { id: held, t01: cyc / 0.3, dir: 1 };
-        else p.swing = { id: held, t01: cyc / 0.3, dir: 1 };
-      } else if (held && CONFIG.WEAPONS[held] && CONFIG.WEAPONS[held].type !== "melee" && cyc < 0.3) {
-        p.pulse = { id: held, t01: cyc / 0.3 };
+        if (CONFIG.WEAPONS[held].thrust) p.thrust = { id: held, t01: cyc / wDur, dir: 1 };
+        else p.swing = { id: held, t01: cyc / wDur, dir: 1 };
+      } else if (held && CONFIG.WEAPONS[held] && CONFIG.WEAPONS[held].type !== "melee" && cyc < wDur) {
+        p.pulse = { id: held, t01: cyc / wDur };
       } else { p.swing = null; p.thrust = null; p.pulse = null; }
     } else { p.moving = false; p.swing = null; p.thrust = null; p.pulse = null; }
 
