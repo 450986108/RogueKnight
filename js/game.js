@@ -1,5 +1,5 @@
 /* ============================================================
- * 流浪骑士 — 游戏主控：状态机 / 生成 / 碰撞 / 关卡推进
+ * 星寰骑士 STELATO Knight — 游戏主控：状态机 / 生成 / 碰撞 / 关卡推进
  * 状态: menu → playing ⇄ levelup/paused → clearing → transition
  *       playing → dying → gameover ；第20关 clearing → victory
  * ============================================================ */

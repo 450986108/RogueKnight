@@ -1,5 +1,5 @@
 /* ============================================================
- * 流浪骑士 — DOM UI：HUD / 主菜单 / 升级选卡 / 过关 / 胜负 / 暂停
+ * 星寰骑士 STELATO Knight — DOM UI：HUD / 主菜单 / 升级选卡 / 过关 / 胜负 / 暂停
  * ============================================================ */
 "use strict";
 
@@ -54,6 +54,12 @@ const UI = {
     $("btnMute").onclick = () => game.toggleMute();
     // 圣盾指示图标（一次性绘制）
     Art.icon(this.el.shieldIcon.getContext("2d"), "shield", 22);
+    // 面板 STELATO 纹章（胜利/暂停顶部，深墨线稿压印羊皮纸）
+    for (const id of ["vicEmblem", "pauseEmblem"]) {
+      const c = $(id);
+      if (c) Art.stelato(c.getContext("2d"), c.width / 2, c.height / 2, c.width * 0.82,
+        { color: "#5a3f1c", alpha: 0.8 });
+    }
   },
 
   show(el) { el.classList.remove("hidden"); },
@@ -171,7 +177,7 @@ const UI = {
   /* ---------------- HUD ---------------- */
   banner(text) {
     const b = this.el.levelBanner;
-    b.textContent = text;
+    b.textContent = "✦ " + text + " ✦";   // 品牌四芒星缀边
     b.classList.remove("hidden");
     b.style.animation = "none";
     void b.offsetWidth;           // 重置动画
@@ -458,7 +464,7 @@ const UI = {
   },
 
   showTransition(game) {
-    this.el.transTitle.textContent = `第 ${game.level} 关 完成！`;
+    this.el.transTitle.textContent = `✦ 第 ${game.level} 关 完成！✦`;
     const bonus = game.level === CONFIG.LEVELS.bonusAfter
       ? `<p><b>通过第 ${CONFIG.LEVELS.bonusAfter} 关！</b>额外奖励：<b>升 1 级</b>（下一关开始时选卡）</p>` : "";
     this.el.transStats.innerHTML =

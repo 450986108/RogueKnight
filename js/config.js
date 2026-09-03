@@ -1,5 +1,5 @@
 /* ============================================================
- * 流浪骑士 RogueKnight — 平衡数值总表
+ * 星寰骑士 STELATO Knight — 平衡数值总表
  * 所有调参都在这里改，代码中只读不写
  * ============================================================ */
 "use strict";
@@ -40,7 +40,7 @@ const CONFIG = {
       desc: "属性均衡的经典骑士，一切强度的基准",
     },
     astro: {
-      name: "星寰骑士", role: "重装",
+      name: "享界骑士", role: "重装",   // STELATO 原味太空甲（与游戏名"星寰骑士"区分）
       hp: 130, speed: 187, slots: 3,
       as: 1, healPerKill: 0, armor: 0, regen: 0, shieldDelay: 0,
       startWeapons: null, xp: 1, pickup: 1,

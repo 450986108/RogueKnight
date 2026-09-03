@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="description" content="流浪骑士 RogueKnight —— 中世纪 Q 版肉鸽生存动作游戏。7 位骑士、16 种武器、20 关挑战，升级四选一强化，撑到最后拯救王国！电脑/手机浏览器即点即玩，无需安装。">
-<meta property="og:title" content="流浪骑士 RogueKnight">
+<meta name="description" content="星寰骑士 STELATO Knight —— 中世纪 Q 版肉鸽生存动作游戏。7 位骑士、16 种武器、20 关挑战，升级四选一强化，撑到最后拯救王国！电脑/手机浏览器即点即玩，无需安装。">
+<meta property="og:title" content="星寰骑士 STELATO Knight">
 <meta property="og:description" content="中世纪 Q 版肉鸽生存游戏 · 7 骑士 16 武器 20 关 · 浏览器即点即玩">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M32 4 L56 12 V32 C56 48 46 57 32 61 C18 57 8 48 8 32 V12 Z' fill='%23c9a35c' stroke='%232e2013' stroke-width='4'/><path d='M32 14 L48 19 V32 C48 41 43 47 32 51 C21 47 16 41 16 32 V19 Z' fill='%236b4726'/><path d='M23 42 L41 20 M41 42 L23 20' stroke='%23ffe9b0' stroke-width='5' stroke-linecap='round'/></svg>">
-<title>流浪骑士 RogueKnight</title>
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M10 8 H54 V30 C54 47 45 56 32 61 C19 56 10 47 10 30 Z' fill='%230d0906' stroke='%23dfe8f2' stroke-width='3'/><path d='M32 12 L34.4 17.6 L40 20 L34.4 22.4 L32 28 L29.6 22.4 L24 20 L29.6 17.6 Z' fill='%23ffffff'/><path d='M32 32 V48' stroke='%23dfe8f2' stroke-width='2.6' stroke-linecap='round'/><path d='M32 46 L35 50.5 L32 55 L29 50.5 Z' fill='%23dfe8f2'/><path d='M17 36 Q32 30 47 36' fill='none' stroke='%239fb3c8' stroke-width='2'/></svg>">
+<title>星寰骑士 STELATO Knight</title>
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 <div id="rotateHint">🔄 建议横屏游玩</div>
@@ -41,8 +41,8 @@
   <!-- ============ 主菜单 ============ -->
   <div id="menu" class="overlay">
     <div class="menu-inner">
-      <h1 class="title">流浪骑士</h1>
-      <p class="subtitle">ROGUE&nbsp;KNIGHT</p>
+      <h1 class="title">星寰骑士</h1>
+      <p class="subtitle">✦&nbsp;STELATO&nbsp;KNIGHT&nbsp;✦</p>
       <canvas id="menuKnight" width="240" height="270"></canvas>
       <div class="menu-help">
         <p class="key-only"><b>WASD / 方向键</b> 移动　<b>鼠标</b> 控制近战方向　<b>自动攻击</b>（法杖悬浮自动索敌）</p>
@@ -104,8 +104,9 @@
   <!-- ============ 胜利 ============ -->
   <div id="victory" class="overlay hidden">
     <div class="panel end-panel">
+      <canvas id="vicEmblem" class="stelato-mark" width="76" height="146"></canvas>
       <h2 class="gold-title big-font">王 国 得 救 了 ！</h2>
-      <p class="subtitle">十关全部通关，流浪骑士的传说就此传颂</p>
+      <p class="subtitle">十关全部通关，星寰骑士的传说就此传颂</p>
       <div class="stats" id="vicStats"></div>
       <button class="btn big" id="btnAgain">再 来 一 局</button>
     </div>
@@ -114,6 +115,7 @@
   <!-- ============ 暂停 ============ -->
   <div id="pause" class="overlay hidden">
     <div class="panel pause-panel">
+      <canvas id="pauseEmblem" class="stelato-mark" width="52" height="99"></canvas>
       <h2 class="gold-title">暂 停</h2>
       <div class="stats small-stats">
         <p class="key-only">继续游戏：ESC / P</p>
@@ -126,14 +128,14 @@
   </div>
 </div>
 
-<script src="js/config.js?v=2"></script>
-<script src="js/art.js?v=2"></script>
-<script src="js/art2.js?v=2"></script>
-<script src="js/effects.js?v=2"></script>
-<script src="js/entities.js?v=2"></script>
-<script src="js/weapons.js?v=2"></script>
-<script src="js/ui.js?v=2"></script>
-<script src="js/game.js?v=2"></script>
-<script src="js/main.js?v=2"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/art.js?v=3"></script>
+<script src="js/art2.js?v=3"></script>
+<script src="js/effects.js?v=3"></script>
+<script src="js/entities.js?v=3"></script>
+<script src="js/weapons.js?v=3"></script>
+<script src="js/ui.js?v=3"></script>
+<script src="js/game.js?v=3"></script>
+<script src="js/main.js?v=3"></script>
 </body>
 </html>

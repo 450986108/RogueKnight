@@ -12,7 +12,7 @@ Object.assign(Art, {
     const idleSway = Math.sin(t * 2.2) * 0.05;
 
     // 皮肤解析：按英雄合并配色/形体覆盖（每帧合并 → editor.html 改全局 SP/KP 即时生效）
-    const skin = HERO_SKINS[p.hero] || HERO_SKINS.astro;   // 缺省 = 星寰骑士原味
+    const skin = HERO_SKINS[p.hero] || HERO_SKINS.astro;   // 缺省 = 享界骑士原味
     const sp = skin.sp ? Object.assign({}, SP, skin.sp) : SP;
     const kp = skin.kp ? Object.assign({}, KP, skin.kp) : KP;
     const deco = skin.deco || {};
@@ -1219,3 +1219,74 @@ const Ambient = {
     }
   },
 };
+
+Object.assign(Art, {
+
+  /* ============================================================
+   * STELATO 品牌纹章（参考 参考图/STELATO.png）：单色细线稿
+   * 盾形轮廓（平顶/垂直侧边/收尖弧底）+ 顶部四芒星 + 中央星轴
+   * （末端菱形尖端）+ 星轨弧带 + 两行星座点阵 + V 形星翼曲线
+   * (x,y)=纹章中心，w=宽度（高 = w×1.9）
+   * opts: { color 线色(默认银白), alpha 整体透明度, lw 线宽, glow 辉光 }
+   * ============================================================ */
+  stelato(ctx, x, y, w, opts) {
+    const o = opts || {};
+    const h = w * 1.9;
+    const col = o.color || "#E8ECF2";
+    const lw = o.lw || Math.max(1, w * 0.022);
+    const X = u => x + u * w, Y = v => y + v * h;   // u,v ∈ [-0.5,0.5] 归一化坐标
+    ctx.save();
+    if (o.alpha != null) ctx.globalAlpha *= o.alpha;
+    if (o.glow) { ctx.shadowColor = col; ctx.shadowBlur = w * 0.05; }
+    ctx.strokeStyle = col; ctx.fillStyle = col;
+    ctx.lineWidth = lw; ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    // 盾形外框
+    ctx.beginPath();
+    ctx.moveTo(X(-0.36), Y(-0.44));
+    ctx.lineTo(X(0.36), Y(-0.44));
+    ctx.lineTo(X(0.36), Y(0.10));
+    ctx.quadraticCurveTo(X(0.33), Y(0.28), x, Y(0.46));
+    ctx.quadraticCurveTo(X(-0.33), Y(0.28), X(-0.36), Y(0.10));
+    ctx.closePath();
+    ctx.stroke();
+
+    // 顶部四芒星（品牌星芒，实心）
+    const s = w * 0.085, d = s * 0.30, sy = Y(-0.30);
+    ctx.beginPath();
+    ctx.moveTo(x, sy - s);
+    ctx.lineTo(x + d, sy - d); ctx.lineTo(x + s, sy);
+    ctx.lineTo(x + d, sy + d); ctx.lineTo(x, sy + s);
+    ctx.lineTo(x - d, sy + d); ctx.lineTo(x - s, sy);
+    ctx.lineTo(x - d, sy - d);
+    ctx.closePath(); ctx.fill();
+
+    // 中央星轴 + 菱形尖端
+    ctx.beginPath(); ctx.moveTo(x, Y(-0.20)); ctx.lineTo(x, Y(0.315)); ctx.stroke();
+    const dw = w * 0.05, dy = Y(0.37);
+    ctx.beginPath();
+    ctx.moveTo(x, dy - dw); ctx.lineTo(x + dw * 0.8, dy);
+    ctx.lineTo(x, dy + dw); ctx.lineTo(x - dw * 0.8, dy);
+    ctx.closePath(); ctx.fill();
+
+    // 星轨弧带（贯穿盾面的浅弧）
+    ctx.beginPath();
+    ctx.moveTo(X(-0.345), Y(0.04));
+    ctx.quadraticCurveTo(x, Y(-0.10), X(0.345), Y(0.04));
+    ctx.stroke();
+
+    // 星座点阵（两行，对称）
+    const dot = (u, v) => { ctx.beginPath(); ctx.arc(X(u), Y(v), lw * 0.9, 0, Math.PI * 2); ctx.fill(); };
+    for (const u of [0.13, 0.23, 0.31]) { dot(u, 0.13); dot(-u, 0.13); }
+    for (const u of [0.18, 0.27]) { dot(u, 0.21); dot(-u, 0.21); }
+
+    // V 形星翼曲线（自中轴下段向盾底两侧张开）
+    for (const sd of [1, -1]) {
+      ctx.beginPath();
+      ctx.moveTo(x, Y(0.25));
+      ctx.quadraticCurveTo(X(sd * 0.19), Y(0.28), X(sd * 0.135), Y(0.35));
+      ctx.stroke();
+    }
+    ctx.restore();
+  },
+});

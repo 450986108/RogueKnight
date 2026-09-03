@@ -1,4 +1,4 @@
-/* ================= 流浪骑士 RogueKnight — 羊皮纸/木纹 UI ================= */
+/* ================= 星寰骑士 STELATO Knight — 羊皮纸/木纹 UI ================= */
 * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
 
 html, body { height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none; }
@@ -189,6 +189,9 @@ body {
 .subtitle.small { font-size: 13px; margin-bottom: 4px; }
 .dim { color: #8a7350; font-size: 13px; }
 
+/* STELATO 纹章（胜利/暂停面板顶部，内容由 ui.js 用 Art.stelato 绘制） */
+.stelato-mark { display: block; margin: 0 auto 8px; opacity: .85; }
+
 /* 木质按钮 */
 .btn {
   font-family: "KaiTi", "STKaiti", "Microsoft YaHei", serif;
@@ -211,6 +214,8 @@ body {
 /* ================= 主菜单 ================= */
 #menu { background: radial-gradient(ellipse at center, rgba(20,14,8,.35), rgba(10,7,4,.78)); }
 .menu-inner { text-align: center; }
+/* 主菜单副标题用 STELATO 银白（品牌色），与金色主标题呼应 */
+#menu .subtitle { color: #aebcc9; letter-spacing: 5px; }
 .title {
   font-family: "KaiTi", "STKaiti", serif;
   font-size: 84px; font-weight: bold; letter-spacing: 14px;
