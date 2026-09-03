@@ -1,20 +1,18 @@
 /* ================= 流浪骑士 RogueKnight — 羊皮纸/木纹 UI ================= */
 * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
 
-html, body { touch-action: none; overscroll-behavior: none; }
+html, body { height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none; }
 body { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 
 body {
   background: radial-gradient(ellipse at 50% 30%, #2b2016 0%, #17100a 70%, #0d0906 100%);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-  overflow: hidden;
 }
 
-#stage { position: relative; }
+/* 舞台居中：绝对定位 + JS 写 translate(-50%,-50%) scale(s)。
+ * 不用 flex 居中 —— 720px 高的舞台会把 body 撑高/弹性行向下溢出，
+ * 手机横屏（视口 ~390px）时缩放画面的下半截被推出视口外且无法滚动。 */
+#stage { position: absolute; left: 50%; top: 50%; }
 
 #game {
   display: block;
@@ -64,7 +62,11 @@ body {
   overflow: hidden;
   margin-bottom: 6px;
 }
+/* fill 必须绝对定位叠放：红条（后声明，在上层）盖住残影（下层）。
+ * 若用普通块级布局，两个 fill 会上下堆叠，红条被推出条外裁掉不可见。 */
 .bar .fill {
+  position: absolute; left: 0; top: 0;
+  width: 100%;
   height: 100%;
   border-radius: 3px;
   transition: width .15s ease-out;

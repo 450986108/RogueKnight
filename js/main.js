@@ -202,7 +202,8 @@
     Scale = s;
     canvas.style.width = CONFIG.W + "px";
     canvas.style.height = CONFIG.H + "px";
-    stage.style.transform = "scale(" + s + ")";
+    /* translate 居中（#stage 绝对定位在 50%/50%）：不受弹性布局溢出方向影响，任何窗口尺寸都居中 */
+    stage.style.transform = "translate(-50%,-50%) scale(" + s + ")";
 
     /* 摇杆反向放大：内部 1 CSS px = 1 屏幕像素 */
     const inv = "scale(" + (1 / s) + ")";
