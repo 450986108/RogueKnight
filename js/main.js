@@ -6,6 +6,13 @@
 (function () {
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
+  const stage = document.getElementById("stage");
+  const hudTl = document.getElementById("hud-tl");
+  const hudTc = document.getElementById("hud-tc");
+  const hudTr = document.getElementById("hud-tr");
+  const btnPauseEl = document.getElementById("btnPause");
+
+  let Scale = 1;   // 舞台整体缩放倍率（resize() 更新）；舞台逻辑坐标 × Scale = 屏幕像素
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
   canvas.width = CONFIG.W * DPR;
@@ -84,9 +91,10 @@
   const knobL = joyL.querySelector(".joy-knob");
   const knobR = joyR.querySelector(".joy-knob");
 
-  function joyR2() { return window.innerHeight < 560 ? 44 : 52; }   // 摇杆半径（CSS px）
+  function joyR2() { return window.innerHeight < 560 ? 44 : 52; }   // 摇杆半径（屏幕像素）
 
-  /* 摇杆渲染：锚点 = 圆心（CSS 负 margin 居中），旋钮平移量 = 夹紧后的向量 */
+  /* 摇杆渲染：x/y 为舞台逻辑坐标（视觉坐标 ÷Scale），旋钮平移量为真实触点向量
+   * （摇杆本体被 resize() 反向放大，其内部 1 CSS px = 1 屏幕像素） */
   function setJoy(el, knob, x, y, kx, ky, on) {
     el.style.left = x + "px";
     el.style.top = y + "px";
@@ -95,9 +103,8 @@
   }
 
   function layoutSpots() {
-    const r = canvas.getBoundingClientRect();
-    const w = r.width || 1280, h = r.height || 720;
-    Touch.spots = { lx: w * 0.2, ly: h * 0.74, rx: w * 0.8, ry: h * 0.74 };
+    /* 空闲提示位用舞台逻辑坐标（= 1280x720 设计坐标），与缩放无关 */
+    Touch.spots = { lx: CONFIG.W * 0.2, ly: CONFIG.H * 0.74, rx: CONFIG.W * 0.8, ry: CONFIG.H * 0.74 };
     Touch.layoutIdle();
   }
 
@@ -114,11 +121,11 @@
     const kx = vx / d * cd, ky = vy / d * cd;
     if (s === Touch.move) {
       s.dx = kx / R; s.dy = ky / R;
-      setJoy(joyL, knobL, s.ax, s.ay, kx, ky, true);
+      setJoy(joyL, knobL, s.ax / Scale, s.ay / Scale, kx, ky, true);
     } else {
       if (d > R * 0.32) s.ang = Math.atan2(vy, vx);   // 死区内保持上次朝向
       s.held = d > R * 0.32;
-      setJoy(joyR, knobR, s.ax, s.ay, kx, ky, s.held);
+      setJoy(joyR, knobR, s.ax / Scale, s.ay / Scale, kx, ky, s.held);
     }
   }
 
@@ -179,7 +186,11 @@
     resize();   // 触屏模式画布更贴边；重算摇杆提示位
   };
 
-  /* ---------------- 自适应缩放 ---------------- */
+  /* ---------------- 自适应缩放 ----------------
+   * 整个 #stage（画布 + 菜单/选人/升级等覆盖层 + HUD）按 1280x720 设计坐标
+   * 统一 transform:scale —— 手机上所有界面与桌面布局完全一致、等比变小，
+   * 不会因 HTML 元素固定 px 溢出舞台（旧做法只缩放画布，菜单会被截断）。
+   * 摇杆/暂停按钮反向放大回真实尺寸（拇指友好）；HUD 三组部分补偿放大。 */
   function resize() {
     /* 手机浏览器地址栏收缩时 visualViewport 更准；触屏模式画布更贴边 */
     const vp = window.visualViewport;
@@ -188,8 +199,24 @@
     const padX = Touch.mode ? 0.995 : 0.97;
     const padY = Touch.mode ? 0.97 : 0.95;
     const s = Math.min((vw * padX) / CONFIG.W, (vh * padY) / CONFIG.H);
-    canvas.style.width = Math.floor(CONFIG.W * s) + "px";
-    canvas.style.height = Math.floor(CONFIG.H * s) + "px";
+    Scale = s;
+    canvas.style.width = CONFIG.W + "px";
+    canvas.style.height = CONFIG.H + "px";
+    stage.style.transform = "scale(" + s + ")";
+
+    /* 摇杆反向放大：内部 1 CSS px = 1 屏幕像素 */
+    const inv = "scale(" + (1 / s) + ")";
+    joyL.style.transform = inv;
+    joyR.style.transform = inv;
+
+    /* HUD 三组部分补偿（上限 1.55 倍）：纯等比在手机上会小到看不清 */
+    const hk = s < 1 ? Math.min(1 / s, 1.55) : 1;
+    hudTl.style.transform = "scale(" + hk + ")";
+    hudTr.style.transform = "scale(" + hk + ")";
+    hudTc.style.transform = "translateX(-50%) scale(" + hk + ")";
+    btnPauseEl.style.transform = "scale(" + hk + ")";
+    btnPauseEl.style.marginTop = 62 * hk + "px";   /* 跟随补偿倍率避开上方武器槽 */
+
     layoutSpots();
   }
   window.addEventListener("resize", resize);
