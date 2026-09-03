@@ -94,8 +94,8 @@ class Player {
     // 计时器
     this.iframe = Math.max(0, this.iframe - dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
-    if (this.swing) { this.swing.t01 += dt / 0.24; if (this.swing.t01 > 1.4) this.swing = null; }
-    if (this.thrust) { this.thrust.t01 += dt / 0.26; if (this.thrust.t01 > 1.4) this.thrust = null; }
+    if (this.swing) { this.swing.t01 += dt / (this.swing.dur || 0.24); if (this.swing.t01 > 1.4) this.swing = null; }
+    if (this.thrust) { this.thrust.t01 += dt / (this.thrust.dur || 0.26); if (this.thrust.t01 > 1.4) this.thrust = null; }
     if (this.pulse) { this.pulse.t01 += dt / 0.3; if (this.pulse.t01 > 1.4) this.pulse = null; }
 
     // 生命回复

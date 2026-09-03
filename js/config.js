@@ -29,7 +29,7 @@ const CONFIG = {
    * healPerKill       每次击杀回复生命（血怒）
    * armor / regen     初始护甲（受击固定减免）/ 每秒回血（铁壁）
    * shieldDelay       脱战该秒数后生成圣盾：完全格挡一次伤害（圣辉）
-   * startWeapons      初始武器（默认阔剑；秘法自带双法杖）
+   * startWeapons      初始武器（默认阔剑；秘法自带双法杖且占满初始槽）
    * xp / pickup       经验倍率 / 拾取半径倍率 */
   HEROES: {
 /* lore: 模糊人物设定（卡片按行显示，每行 ≤12 字、最多 3 行，避免溢出；连读见详情栏） */
@@ -77,10 +77,10 @@ const CONFIG = {
     },
     arcana: {
       name: "秘法骑士", role: "炮台",
-      hp: 70, speed: 220, slots: 3,
+      hp: 50, speed: 220, slots: 2,          // 血量=流浪骑士一半；双法杖开局即占满 2 槽
       as: 1, healPerKill: 0, armor: 0, regen: 0, shieldDelay: 0,
       startWeapons: ["fire", "lightning"], xp: 1, pickup: 1,
-      lore: ["钻研奥术的秘法骑士", "血量单薄，攻伐全交法杖", "火焰与闪电自动索敌"],
+      lore: ["钻研奥术的秘法骑士", "血量减半，开局双杖满槽", "火焰与闪电自动索敌"],
     },
   },
   HERO_ORDER: ["wanderer", "astro", "holy", "gale", "blood", "iron", "arcana"],
@@ -88,29 +88,31 @@ const CONFIG = {
 
   /* ---------- 武器 ----------
    * type: melee=近战扇形  fire=火焰锥  lightning=闪电链  proj=投射物  prism=引导激光
+   * thrust: 直刺型动作（突刺/速刺/盾击，见 art2._meleePose 各武器专属曲线）
+   * anim:   出手动作时长 s（蓄力→击发→收势的节奏，重武器更慢）
    * 全部武器都 designed 为可同时命中多个敌人 */
   WEAPONS: {
     sword: {
       name: "阔剑", type: "melee",
-      dmg: 12, cd: 0.65, range: 143, arc: 110,
+      dmg: 12, cd: 0.65, range: 143, arc: 110, anim: 0.28,
       knockback: 70,
       desc: "攻速、伤害、距离均衡的经典骑士剑，扇形横扫",
     },
     axe: {
       name: "双手战斧", type: "melee",
-      dmg: 28, cd: 1.5, range: 158, arc: 140,
+      dmg: 28, cd: 1.5, range: 158, arc: 140, anim: 0.55,
       knockback: 120,
       desc: "高伤害大范围横扫，但攻速很慢",
     },
     lance: {
       name: "骑士长枪", type: "melee",
-      dmg: 18, cd: 1.1, range: 248, arc: 30, thrust: true,
+      dmg: 18, cd: 1.1, range: 248, arc: 30, thrust: true, anim: 0.34,
       knockback: 140,
       desc: "超长距离窄范围突刺，先下手为强",
     },
     shield: {
       name: "盾牌", type: "melee",
-      dmg: 6, cd: 1.2, range: 117, arc: 100,
+      dmg: 6, cd: 1.2, range: 117, arc: 100, thrust: true, anim: 0.3,
       knockback: 240, block: true, blockArc: 120,
       desc: "攻击力低，但正面120°免受一切伤害，盾击可击退敌群",
     },
@@ -141,25 +143,25 @@ const CONFIG = {
     /* ---- 近战扩展 ---- */
     shadow: {
       name: "影刃", type: "melee",
-      dmg: 7, cd: 0.28, range: 95, arc: 100,
+      dmg: 7, cd: 0.28, range: 95, arc: 100, thrust: true, anim: 0.17,
       knockback: 30,
       desc: "双手匕首疯狂连刺，攻速极快但距离很短",
     },
     hammer: {
       name: "破甲战锤", type: "melee",
-      dmg: 26, cd: 1.35, range: 112, arc: 90,
+      dmg: 26, cd: 1.35, range: 112, arc: 90, anim: 0.5,
       knockback: 150, stun: 1,
       desc: "短距离高额重击，命中使敌人眩晕 1 秒（原地晃动绕星、无法移动与攻击）",
     },
     chain: {
       name: "链刃", type: "melee",
-      dmg: 14, cd: 0.9, range: 285, arc: 55,
-      knockback: 0, gather: 380, gatherDist: 170,   // 命中者被拉向挥击路径中段（聚拢，不拉回角色）
-      desc: "超长距离甩击，穿透路径上所有敌人，并把它们聚拢到链条中段（便于范围武器收割）",
+      dmg: 8, cd: 0.9, range: 285, arc: 12, thrust: true, anim: 0.36,
+      knockback: 0, gather: 480,   // 命中者被垂直拉到突刺中线上（沿线聚成一列，便于穿透/范围收割）
+      desc: "超长距离直线突刺：穿透路径上的敌人，低伤但把他们拉到突刺中线上排成一列",
     },
     scythe: {
       name: "血镰", type: "melee",
-      dmg: 16, cd: 1.0, range: 168, arc: 135,
+      dmg: 16, cd: 1.0, range: 168, arc: 135, anim: 0.46,
       knockback: 60, healPerKill: 1,
       desc: "中距离大弧度挥砍，每击杀一只怪物回复 1 点生命",
     },

@@ -7,6 +7,7 @@ const FX = {
   particles: [],   // {x,y,vx,vy,life,max,size,col,grav,add,shrink}
   dmgNums: [],     // {x,y,vy,life,max,str,col,size,crit}
   slashes: [],     // {x,y,ang,range,arc,t,max,col}
+  lunges: [],      // {x,y,ang,range,t,max,col} 直刺光带
   bolts: [],       // {pts:[{x,y}],t,max,col}
   rings: [],       // {x,y,r,maxR,t,max,col,width}
   texts: [],       // {x,y,vy,life,max,str,col,size}
@@ -15,7 +16,7 @@ const FX = {
 
   reset() {
     this.particles.length = 0; this.dmgNums.length = 0;
-    this.slashes.length = 0; this.bolts.length = 0;
+    this.slashes.length = 0; this.lunges.length = 0; this.bolts.length = 0;
     this.rings.length = 0; this.texts.length = 0;
     this.shake = 0;
     this.hitStop = 0;
@@ -101,6 +102,11 @@ const FX = {
     this.slashes.push({ x, y, ang, range, arc: arcDeg * Math.PI / 180, t: 0, max: 0.2, col });
   },
 
+  /* 直刺光带：沿攻击方向刺出的细长轨迹（长枪/链刃/影刃），随进度刺出后消散 */
+  lunge(x, y, ang, range, col = "#dcecff") {
+    this.lunges.push({ x, y, ang, range, t: 0, max: 0.18, col });
+  },
+
   bolt(pts, col = "#ffe14a") {
     this.bolts.push({ pts, t: 0, max: 0.2, col });
   },
@@ -155,6 +161,10 @@ const FX = {
       this.slashes[i].t += dt;
       if (this.slashes[i].t >= this.slashes[i].max) this.slashes.splice(i, 1);
     }
+    for (let i = this.lunges.length - 1; i >= 0; i--) {
+      this.lunges[i].t += dt;
+      if (this.lunges[i].t >= this.lunges[i].max) this.lunges.splice(i, 1);
+    }
     for (let i = this.bolts.length - 1; i >= 0; i--) {
       this.bolts[i].t += dt;
       if (this.bolts[i].t >= this.bolts[i].max) this.bolts.splice(i, 1);
@@ -208,6 +218,25 @@ const FX = {
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 6;
       ctx.beginPath(); ctx.arc(s.x, s.y - 24, r, a0, a0 + sweep); ctx.stroke();
+      ctx.restore();
+    }
+
+    // 直刺光带（沿方向刺出后消散；外晕 + 白热核心）
+    for (const l of this.lunges) {
+      const k = l.t / l.max;
+      const tip = Math.max(46, l.range * Math.min(1, 0.25 + k * 1.7));
+      ctx.save();
+      ctx.translate(l.x, l.y - 24);
+      ctx.rotate(l.ang);
+      ctx.lineCap = "round";
+      ctx.globalAlpha = (1 - k) * 0.85;
+      ctx.strokeStyle = l.col;
+      ctx.lineWidth = 15 * (1 - k * 0.55);
+      ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(tip, 0); ctx.stroke();
+      ctx.globalAlpha = (1 - k) * 0.9;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(32, 0); ctx.lineTo(tip, 0); ctx.stroke();
       ctx.restore();
     }
 

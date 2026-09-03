@@ -1,7 +1,7 @@
 /* ============================================================
  * 星寰骑士 STELATO Knight — 武器系统（16 种，全部可命中多个敌人）
- *   近战: 阔剑/双手战斧（扇形挥砍） 骑士长枪（窄锥突刺） 盾牌（盾击+正面格挡）
- *         影刃（极快连刺） 破甲战锤（眩晕） 链刃（穿透拉拽） 血镰（击杀吸血）
+ *   近战: 阔剑/战斧/血镰（扇形挥砍） 长枪/链刃（直线突刺） 盾牌（盾击+正面格挡）
+ *         影刃（双手速刺） 破甲战锤（眩晕） 链刃（穿透+拉到中线） 血镰（击杀吸血）
  *   法杖: 火焰（持续锥形+灼烧） 闪电（跳跃连锁） 风刃（穿透） 水球（爆炸AoE）
  *         冰魄（霜冻叠加+碎冰） 瘟疫（毒液区域） 光棱（引导激光） 引力（黑洞聚怪引爆）
  * ============================================================ */
@@ -67,16 +67,23 @@ const Weapons = {
     const aim = cfg.type === "melee" ? player.aim : w.aimAng;   // 法杖朝索敌方向
 
     if (cfg.type === "melee") {
-      const slashCol = { shadow: "#c9b8ff", hammer: "#ffd9a0", chain: "#cfe0ff", scythe: "#ff9aa8" }[w.id]
+      const slashCol = { hammer: "#ffd9a0", scythe: "#ff9aa8" }[w.id]
         || (w.id === "shield" ? "#9bc4ff" : "#fff8dc");
       if (cfg.thrust) {
-        player.thrust = { id: w.id, t01: 0 };
-        FX.slash(player.x, player.y, aim, cfg.range, cfg.arc, "#dcecff");
+        player._thrustDir = -(player._thrustDir || 1);          // 左右手交替刺（影刃）/曲腕方向交替
+        player.thrust = { id: w.id, t01: 0, dir: player._thrustDir, dur: cfg.anim || 0.26 };
+        if (w.id === "shield") {
+          // 盾击：盾面冲击环（盾在左手，见 art2 持盾臂前顶）
+          FX.ring(player.x + Math.cos(aim) * 42, player.y - 18 + Math.sin(aim) * 42, 34, "#9bc4ff", 4, 0.24);
+        } else {
+          const lungeCol = { chain: "#cfe0ff", shadow: "#c9b8ff" }[w.id] || "#dcecff";
+          FX.lunge(player.x, player.y, aim, cfg.range, lungeCol);   // 直刺光带（随进度刺出后消散）
+        }
         SFX.thrust();
       } else {
         if (!player.swing || player.swing.id !== w.id) player._swingDir = 1;
         player._swingDir = -(player._swingDir || 1);
-        player.swing = { id: w.id, t01: 0, dir: player._swingDir };
+        player.swing = { id: w.id, t01: 0, dir: player._swingDir, dur: cfg.anim || 0.24 };
         FX.slash(player.x, player.y, aim, cfg.range, cfg.arc, slashCol);
         SFX.swing();
       }
@@ -94,13 +101,20 @@ const Weapons = {
           FX.spark(m.x, m.y - m.radius - 12, "#ffe14a", 5, 90);
           SFX.stun();
         }
-        // 链刃：把命中的敌人聚拢到挥击路径中段（不往角色方向拉回）
+        // 链刃：把命中者垂直拉到突刺中线上（沿线聚成一列；保持各自远近，不拉回角色）
         if (cfg.gather) {
-          const ax = player.x + Math.cos(aim) * cfg.gatherDist;
-          const ay = player.y + Math.sin(aim) * cfg.gatherDist;
-          const gAng = Math.atan2(ay - m.y, ax - m.x);
-          m.kb.x += Math.cos(gAng) * cfg.gather;
-          m.kb.y += Math.sin(gAng) * cfg.gather;
+          const dx = m.x - player.x, dy = m.y - player.y;
+          const fwd = Math.max(60, Math.min(cfg.range - 30, dx * Math.cos(aim) + dy * Math.sin(aim)));
+          const tx = player.x + Math.cos(aim) * fwd;
+          const ty = player.y + Math.sin(aim) * fwd;
+          const off = Math.hypot(tx - m.x, ty - m.y);
+          if (off > 2) {
+            // 击退速度按 6/s 衰减 → 位移≈初速/6；拉力∝偏离距离则刚好收在线上不穿线
+            const gAng = Math.atan2(ty - m.y, tx - m.x);
+            const pull = Math.min(cfg.gather, off * 6.5);
+            m.kb.x += Math.cos(gAng) * pull;
+            m.kb.y += Math.sin(gAng) * pull;
+          }
           FX.spark(m.x, m.y - m.radius, "#cfe0ff", 4, 80);
         }
         // 血镰：击杀回复生命

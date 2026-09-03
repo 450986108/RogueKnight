@@ -277,7 +277,8 @@
   function drawMenuKnight(t) {
     mkCtx.clearRect(0, 0, 240, 270);
     const cyc = t % 2.6;
-    if (cyc < 0.24) menuKnight.swing = { id: "sword", t01: cyc / 0.24, dir: 1 };
+    const dur = CONFIG.WEAPONS.sword.anim || 0.24;
+    if (cyc < dur) menuKnight.swing = { id: "sword", t01: cyc / dur, dir: 1 };
     else menuKnight.swing = null;
     menuKnight.aim = 0.25 + Math.sin(t * 0.8) * 0.3;
     menuKnight.hero = UI.selectedHero;   // 主菜单大骑士 = 当前选中英雄
@@ -305,7 +306,8 @@
       const pv = UI.heroPreviews[i];
       const pt = t + i * 0.37;                    // 各卡相位错开，不齐步
       const cyc = pt % 2.6;
-      pv.mock.swing = (pv.melee && cyc < 0.24) ? { id: pv.melee, t01: cyc / 0.24, dir: 1 } : null;
+      const dur = pv.melee ? (CONFIG.WEAPONS[pv.melee].anim || 0.24) : 0.24;
+      pv.mock.swing = (pv.melee && cyc < dur) ? { id: pv.melee, t01: cyc / dur, dir: 1 } : null;
       pv.mock.aim = 0.25 + Math.sin(pt * 0.8) * 0.3;
       pv.ctx.setTransform(1, 0, 0, 1, 0, 0);
       pv.ctx.clearRect(0, 0, pv.w, pv.h);

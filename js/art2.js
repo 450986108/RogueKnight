@@ -25,12 +25,16 @@ Object.assign(Art, {
 
     shadowEll(ctx, 21, 7.5, 0.28);
 
+    // ---- 主手武器与本帧动作姿态（先于身体计算：垫步冲量要平移全身含披风，阴影留原地） ----
+    const hasShield = p.weapons.some(w => w.id === "shield");
+    const primary = this._primaryWeapon(p);
+    const pose = primary ? this._meleePose(p, primary) : null;
+    if (pose && pose.lean) ctx.translate(Math.cos(p.aim) * pose.lean, Math.sin(p.aim) * pose.lean * 0.7);
+
     // ---- 背层装饰（围巾/披风，压在铠甲之下） ----
     if (deco.behind) deco.behind(ctx, p, t, bob, sp, kp, facing);
 
     // ---- 武器布局：近战手持（下方绘制），法杖悬浮（见 _floatingStaves） ----
-    const hasShield = p.weapons.some(w => w.id === "shield");
-    const primary = this._primaryWeapon(p);
     const twoHanded = ["axe", "lance", "hammer", "scythe"].includes(primary);   // 双手武器：左手也上柄
     // 双手持武器时，盾牌斜挂背上（仅露出轮廓）
     if (hasShield && twoHanded) {
@@ -231,12 +235,16 @@ Object.assign(Art, {
       ctx.restore();
     }
 
-    // ---- 左臂：盾牌（拥有且非双手持时永远举向瞄准方向，臂袖随伸） ----
+    // ---- 左臂：盾牌（拥有且非双手持时永远举向瞄准方向；盾击时持盾臂向前顶出） ----
     if (hasShield && !twoHanded) {
       const angS = p.aim + idleSway;
       const shx = -kp.shoulderX, shy = -36 + bob;
-      const hx = shx + Math.cos(angS) * kp.armLen;
-      const hy = shy + Math.sin(angS) * kp.armLen;
+      let extS = 0;
+      if (p.thrust && p.thrust.id === "shield" && p.thrust.t01 < 1) {
+        extS = Math.sin(Math.min(p.thrust.t01 * 1.4, 1) * Math.PI) * 16;   // 盾击：盾面撞击前顶
+      }
+      const hx = shx + Math.cos(angS) * (kp.armLen + extS);
+      const hy = shy + Math.sin(angS) * (kp.armLen + extS);
       this._armorArm(ctx, shx, shy, hx, hy, sp);
       ctx.save();
       ctx.translate(hx, hy);
@@ -249,21 +257,10 @@ Object.assign(Art, {
       ctx.restore();
     }
 
-    // ---- 右臂：主武器（臂袖从肩甲伸向握柄，挥砍/突刺随动） ----
+    // ---- 右臂：主武器（臂袖从肩甲伸向握柄，各武器专属姿态随动，见 _meleePose） ----
     if (primary) {
-      let ang = p.aim + idleSway;
-      let ext = 0;
-      const cfg = CONFIG.WEAPONS[primary];
-      if (p.swing && p.swing.t01 < 1 && p.swing.id === primary) {
-        // 挥砍：从弧一端扫到另一端
-        const arcHalf = (cfg.arc * Math.PI / 180) / 2;
-        const e = 1 - Math.pow(1 - p.swing.t01, 3);
-        ang = p.aim + p.swing.dir * (-arcHalf + e * arcHalf * 2);
-      } else if (p.thrust && p.thrust.t01 < 1 && p.thrust.id === primary) {
-        // 突刺：前伸后收
-        const e = p.thrust.t01;
-        ext = Math.sin(Math.min(e * 1.6, 1) * Math.PI) * 26;
-      }
+      const ang = p.aim + idleSway + (pose ? (pose.ang || 0) : 0);   // ang 缺省 0：未防住时 NaN 会令 translate/rotate 静默失效
+      const ext = pose ? (pose.ext || 0) : 0;
       const shx = kp.shoulderX, shy = -36 + bob;
       const hx = shx + Math.cos(ang) * (kp.armLen + ext);
       const hy = shy + Math.sin(ang) * (kp.armLen + ext);
@@ -275,7 +272,7 @@ Object.assign(Art, {
       this._armorArm(ctx, shx, shy, hx, hy, sp);
       ctx.save();
       ctx.translate(hx, hy);
-      ctx.rotate(ang);
+      ctx.rotate(ang + (pose ? (pose.wrist || 0) : 0));   // 手腕自转：过顶劈砸/压腕等在握点上表达
       this.weaponInHand(ctx, primary);
       // 手（黑色机械手套，覆在握柄上呈握持状）
       ctx.strokeStyle = OUT; ctx.lineWidth = OUT_W;
@@ -352,6 +349,86 @@ Object.assign(Art, {
   },
 
   _isMelee(id) { const c = CONFIG.WEAPONS[id]; return !!c && c.type === "melee"; },
+
+  /* 当前帧近战动作姿态 —— 各武器专属曲线（蓄力→击发→收势 三段式 + 手腕自转 + 垫步冲量）
+   * 参考真实兵器用法：剑=交替横斩发力回中 / 斧=高举过头全身抡出 / 锤=过顶砸击
+   * 镰=外撩内勾的收割弧 / 枪=抽-送平刺 / 链=回甩放直 / 匕=双手交替速刺
+   * 返回 { ang 臂角偏转rad, ext 前伸px, wrist 手腕自转rad, lean 垫步px }；未出手返回 null。
+   * 分段工具：seg 区间归一 / io 缓入缓出(蓄力) / eo 缓出(收势) / ei 缓入(重物加速) */
+  _meleePose(p, id) {
+    const cfg = CONFIG.WEAPONS[id];
+    const seg = (t, a, b) => (t <= a) ? 0 : (t >= b) ? 1 : (t - a) / (b - a);
+    const io = x => x * x * (3 - 2 * x);
+    const eo = x => 1 - Math.pow(1 - x, 3);
+    const ei = x => Math.pow(x, 2.6);
+
+    if (p.swing && p.swing.id === id && p.swing.t01 < 1) {
+      const t = Math.min(1, p.swing.t01), dir = p.swing.dir || 1;
+      const arcHalf = (cfg.arc * Math.PI / 180) / 2;
+      switch (id) {
+        case "sword": {        // 阔剑：后引起势 → 腰部发力快斩 → 顺势回中（轻刃拍点快）
+          let e, wr;
+          if (t < 0.22) { const k = io(seg(t, 0, 0.22)); e = -1.1 * k; wr = -dir * 0.35 * k; }
+          else if (t < 0.64) { const k = eo(seg(t, 0.22, 0.64)); e = -1.1 + k * 2.1; wr = -dir * 0.35 + k * dir * 0.65; }
+          else { const k = eo(seg(t, 0.64, 1)); e = 1.0 - k; wr = dir * 0.3 * (1 - k); }
+          return { ang: dir * e * (arcHalf + 0.1), wrist: wr, lean: t < 0.64 ? 3.5 * (1 - Math.abs(e)) : 0 };
+        }
+        case "axe": {          // 双手战斧：高举过头长时间蓄力 → 加速抡出大弧 → 长随挥（重刃拍点慢）
+          let e, wr;
+          if (t < 0.34) { const k = io(seg(t, 0, 0.34)); e = -1.28 * k; wr = -dir * 1.05 * k; }
+          else if (t < 0.7) { const k = ei(seg(t, 0.34, 0.7)); e = -1.28 + k * 2.46; wr = -dir * 1.05 + k * dir * 1.25; }
+          else { const k = eo(seg(t, 0.7, 1)); e = 1.18 * (1 - k); wr = dir * 0.2 * (1 - k); }
+          return { ang: dir * e * arcHalf, wrist: wr, ext: 4, lean: (t > 0.34 && t < 0.8) ? 5.5 : 0 };
+        }
+        case "hammer": {       // 破甲战锤：过顶砸击 —— 锤头抡过肩后垂直落砸，主要靠手腕自转表达
+          let e, wr, ext;
+          if (t < 0.32) { const k = io(seg(t, 0, 0.32)); e = -0.5 * k; wr = -dir * 2.0 * k; ext = -3 * k; }
+          else if (t < 0.55) { const k = ei(seg(t, 0.32, 0.55)); e = -0.5 + k * 0.95; wr = -dir * 2.0 + k * dir * 2.1; ext = -3 + k * 13; }
+          else { const k = eo(seg(t, 0.55, 1)); e = 0.45 * (1 - k); wr = dir * 0.1 * (1 - k); ext = 10 * (1 - k); }
+          return { ang: dir * e * 0.85, wrist: wr, ext, lean: (t > 0.32 && t < 0.62) ? 5 : 0 };
+        }
+        case "scythe": {       // 血镰：勾割 —— 先向侧后撩引，再大幅内勾回拉的收割弧
+          let e, wr;
+          if (t < 0.3) { const k = io(seg(t, 0, 0.3)); e = -1.32 * k; wr = dir * 0.8 * k; }
+          else if (t < 0.74) { const k = eo(seg(t, 0.3, 0.74)); e = -1.32 + k * 2.4; wr = dir * (0.8 - k * 1.45); }
+          else { const k = eo(seg(t, 0.74, 1)); e = 1.08 * (1 - k); wr = -dir * 0.65 * (1 - k); }
+          return { ang: dir * e * (arcHalf + 0.26), wrist: wr, lean: (t > 0.3 && t < 0.84) ? 4.5 : 0 };
+        }
+        default: {             // 通用挥砍兜底：从弧一端扫到另一端
+          const e = eo(t);
+          return { ang: dir * (-arcHalf + e * arcHalf * 2) };
+        }
+      }
+    }
+    if (p.thrust && p.thrust.id === id && p.thrust.t01 < 1) {
+      const t = Math.min(1, p.thrust.t01), dir = p.thrust.dir || 1;
+      switch (id) {
+        case "lance": {        // 长枪：夹枪后拉蓄力，蹬地送髋平刺（枪术"抽-送"大弓步）
+          let ext;
+          if (t < 0.2) ext = -10 * io(seg(t, 0, 0.2));
+          else if (t < 0.55) ext = -10 + ei(seg(t, 0.2, 0.55)) * 58;
+          else ext = 48 * (1 - eo(seg(t, 0.55, 1)));
+          return { ext, lean: Math.max(0, ext) * 0.24 };
+        }
+        case "chain": {        // 链刃：大幅回甩蓄势，放直掷出时甩直链身（出手加速 ei）
+          let ext, wr;
+          if (t < 0.22) { const k = io(seg(t, 0, 0.22)); ext = -8 * k; wr = -dir * 0.35 * k; }
+          else if (t < 0.6) { const k = ei(seg(t, 0.22, 0.6)); ext = -8 + k * 50; wr = -dir * 0.35 + k * dir * 0.55; }
+          else { const k = eo(seg(t, 0.6, 1)); ext = 42 * (1 - k); wr = dir * 0.2 * (1 - k); }
+          return { ext, wrist: wr, lean: Math.max(0, ext) * 0.2 };
+        }
+        case "shadow": {       // 影刃：双手匕首左右交替速刺（dir 交替刺出侧）
+          const k = Math.sin(Math.min(t * 1.5, 1) * Math.PI);
+          return { ang: dir * 0.16 * k, ext: k * 21, wrist: dir * 0.22 * k, lean: k * 3 };
+        }
+        default: {             // 通用突刺兜底：前伸后收
+          const k = Math.sin(Math.min(t * 1.6, 1) * Math.PI);
+          return { ext: k * 26 };
+        }
+      }
+    }
+    return null;
+  },
 
   /* 悬浮法杖：环绕身体漂浮，锁定目标时朝向目标并按开火节奏后坐；
    * 无目标时绕体缓慢环游。朝向/位置做了插值平滑，索敌切换不瞬移。 */
