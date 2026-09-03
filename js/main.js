@@ -183,6 +183,7 @@
   window.setPlayMode = mode => {
     Touch.mode = mode === "touch";
     document.body.classList.toggle("touch", Touch.mode);
+    document.body.classList.toggle("desk-aim", mode === "desktop");   // 桌面端对局隐藏系统光标，画大准星
     resize();   // 触屏模式画布更贴边；重算摇杆提示位
   };
 
@@ -318,6 +319,37 @@
     }
   }
 
+  /* ---------------- 桌面端大准星 ----------------
+   * 系统十字光标细小无色、草地上不显眼 —— 桌面端对局中隐藏系统光标（body.desk-aim，
+   * 见 css），在画布顶层画大号金白发光准星：不随镜头震动、按下攻击时微放大。 */
+  function drawCursor(t) {
+    if (Touch.mode || UI.playMode !== "desktop") return;
+    if (game.state !== "playing" && game.state !== "clearing" && game.state !== "dying") return;
+    const x = Input.mouse.wx, y = Input.mouse.wy;
+    const R = (15 + 0.6 * Math.sin(t * 5)) * (Input.mouse.down ? 1.15 : 1);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);   // 准星是 UI 层：重置掉震动偏移
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(255,190,80,0.5)";            // 外晕圈
+    ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,238,175,0.95)";          // 主圈
+    ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 3.2;                                 // 四向刻线
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a) * (R + 5), y + Math.sin(a) * (R + 5));
+      ctx.lineTo(x + Math.cos(a) * (R + 14), y + Math.sin(a) * (R + 14));
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(255,252,225,1)";               // 中心点
+    ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   /* ---------------- 主循环 ---------------- */
   let last = performance.now();
 
@@ -346,6 +378,7 @@
     } else {
       game.render(ctx);
       UI.updateHUD(game);
+      drawCursor(t);
     }
 
     // 摇杆仅在对局中显示（菜单/选卡等覆盖层之下不露出）

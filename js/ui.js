@@ -252,22 +252,23 @@ const UI = {
     return u.base + u.per * (p.upgradeLevels[u.id] || 0);
   },
 
+  /* 强化生效：百分比类以基础值为基数加算（如基础 100 血 +15% 再 +18% = 133，而非 115×1.18） */
   _applyStat(u, p) {
     const v = this.statMagnitude(u, p);
     switch (u.id) {
       case "hp": {
-        const add = p.maxHp * v / 100;
+        const add = p.base.hp * v / 100;
         p.maxHp += add;
         p.hp = Math.min(p.maxHp, p.hp + add);
         break;
       }
-      case "dmg": p.mult.dmg *= 1 + v / 100; break;
-      case "as": p.mult.as *= 1 + v / 100; break;
-      case "spd": p.mult.spd *= 1 + v / 100; break;
+      case "dmg": p.mult.dmg += v / 100; break;             // 攻击基数为 1
+      case "as": p.mult.as += p.base.as * v / 100; break;
+      case "spd": p.mult.spd += p.base.spd * v / 100; break;
       case "armor": p.armor += v; break;
       case "regen": p.regen += v; break;
-      case "pickup": p.pickupR *= 1 + v / 100; break;
-      case "xp": p.xpMult *= 1 + v / 100; break;
+      case "pickup": p.pickupR += p.base.pickup * v / 100; break;
+      case "xp": p.xpMult += p.base.xp * v / 100; break;
       case "crit": p.crit += v / 100; break;
     }
     p.upgradeLevels[u.id] = (p.upgradeLevels[u.id] || 0) + 1;
@@ -279,6 +280,7 @@ const UI = {
     const pool = [];
     for (const u of CONFIG.UPGRADES) {
       const times = p.upgradeLevels[u.id] || 0;
+      if (times >= CONFIG.UPGRADE_MAX) continue;          // 满级强化不再进卡池
       const v = Math.round(this.statMagnitude(u, p) * 10) / 10;
       pool.push({
         key: "stat:" + u.id, w: u.weight,
@@ -365,7 +367,7 @@ const UI = {
     box.classList.remove("picker");
     const g = CONFIG.LEVELUP_GROWTH;
     this.el.levelupSub.textContent =
-      `骑士等级提升到 Lv.${game.player.level}！固有成长：生命上限 +${g.hpPct}%，攻击力 +${g.dmgPct}%`;
+      `骑士等级提升到 Lv.${game.player.level}！固有成长：生命上限 +${g.hpFlat}，攻击力 +${g.dmgFlat}%`;
     let chosen = false;
     for (const c of this._cards) {
       const div = document.createElement("div");

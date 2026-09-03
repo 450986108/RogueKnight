@@ -3,7 +3,7 @@
  *   近战: 阔剑/战斧/血镰（扇形挥砍） 长枪/链刃（直线突刺） 盾牌（盾击+正面格挡）
  *         影刃（双手速刺） 破甲战锤（眩晕） 链刃（穿透+拉到中线） 血镰（击杀吸血）
  *   法杖: 火焰（持续锥形+灼烧） 闪电（跳跃连锁） 风刃（穿透） 水球（爆炸AoE）
- *         冰魄（霜冻叠加+碎冰） 瘟疫（毒液区域） 光棱（引导激光） 引力（黑洞聚怪引爆）
+ *         冰魄（霜冻叠加+碎冰） 瘟疫（毒液区域） 光棱（单体锁定激光） 引力（黑洞聚怪引爆）
  * ============================================================ */
 "use strict";
 
@@ -206,56 +206,64 @@ const Weapons = {
     SFX.fire();
   },
 
-  /* 光棱 tick：窄束激光，距离越近伤害越高（朝索敌方向） */
+  /* 光棱 tick：单体照射——只伤本杖认领的目标（w.target），距离越近伤害越高 */
   _prismTick(w, player, game) {
     const cfg = CONFIG.WEAPONS[w.id];
     player.pulse = { id: w.id, t01: 0 };
     player.beamT = 0.12;                       // 渲染层据此绘制束光
-    const base = this.dmgOf(w, player);
-    const targets = game.monstersInBeam(player.x, player.y - 26, w.aimAng, cfg.range, cfg.width);
-    for (const m of targets) {
-      const d = Math.hypot(m.x - player.x, m.y - player.y);
-      const closeness = 1 - Math.min(1, d / cfg.range);
-      const crit = this.rollCrit(player);
-      const dmg = base * (1 + cfg.closeBonus * closeness) * (crit ? CONFIG.CRIT_MULT : 1);
-      game.hitMonster(m, dmg, crit, player.x, player.y, 12);
-      FX.spark(m.x, m.y - m.radius, "#ffb0f0", 2, 70);
-    }
+    const m = w.target;
+    if (!m || m.dead) return;
+    const d = Math.hypot(m.x - player.x, m.y - player.y);
+    const closeness = 1 - Math.min(1, d / cfg.range);
+    const crit = this.rollCrit(player);
+    const dmg = this.dmgOf(w, player) * (1 + cfg.closeBonus * closeness) * (crit ? CONFIG.CRIT_MULT : 1);
+    game.hitMonster(m, dmg, crit, player.x, player.y, 12);
+    FX.spark(m.x, m.y - m.radius, "#ffb0f0", 2, 70);
     SFX.laser();
   },
 
-  /* 光棱束光渲染（由 Game.render 调用；beamT>0 时可见，朝索敌方向） */
+  /* 光棱束光渲染（由 Game.render 调用；beamT>0 时可见）
+   * 单体：杖头到目标身上的光斑连一条发光细线，长度随主角与敌人间距变化（最远到射程） */
   drawPrism(ctx, game) {
     const p = game.player;
     if (!p || p.beamT <= 0 || p.dead) return;
     const w = p.weapons.find(x => x.id === "prism");
-    if (!w) return;
-    const ang = w.aimAng !== undefined ? w.aimAng : p.aim;
+    const m = w && w.target;
+    if (!w || !m || m.dead) return;
     const cfg = CONFIG.WEAPONS.prism;
-    const sx = p.x + Math.cos(ang) * 30;
-    const sy = p.y - 30 + Math.sin(ang) * 30;
-    const ex = p.x + Math.cos(ang) * cfg.range;
-    const ey = p.y - 30 + Math.sin(ang) * cfg.range;
+    const mx = m.x, my = m.y - 26;                        // 光斑中心：目标躯干
+    const dx = mx - p.x, dy = my - (p.y - 30);
+    const d = Math.hypot(dx, dy) || 1;
+    const k = Math.min(1, cfg.range / d);                 // 连线长度封顶在射程处
+    const ex = p.x + dx * k, ey = (p.y - 30) + dy * k;
+    const sx = p.x + dx / d * 30, sy = (p.y - 30) + dy / d * 30;   // 杖头（朝目标方向 30px 处）
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = Math.min(1, p.beamT / 0.08);        // 出手间隔内的余辉淡出
     ctx.lineCap = "round";
-    // 外晕
-    ctx.strokeStyle = "rgba(255,150,230,0.22)";
-    ctx.lineWidth = cfg.width;
+    // 细线三层：外晕 / 中层 / 白热核心
+    ctx.strokeStyle = "rgba(255,150,230,0.25)";
+    ctx.lineWidth = 8;
     ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-    // 中层
-    ctx.strokeStyle = "rgba(255,180,245,0.5)";
-    ctx.lineWidth = 9;
-    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-    // 白热核心
-    ctx.strokeStyle = "rgba(255,245,255,0.95)";
+    ctx.strokeStyle = "rgba(255,180,245,0.6)";
     ctx.lineWidth = 3.5;
     ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-    // 枪口辉光
-    const g = ctx.createRadialGradient(sx, sy, 1, sx, sy, 16);
-    g.addColorStop(0, "rgba(255,230,250,0.9)"); g.addColorStop(1, "rgba(255,150,230,0)");
+    ctx.strokeStyle = "rgba(255,245,255,0.95)";
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    // 杖头辉光
+    const g0 = ctx.createRadialGradient(sx, sy, 1, sx, sy, 13);
+    g0.addColorStop(0, "rgba(255,230,250,0.85)"); g0.addColorStop(1, "rgba(255,150,230,0)");
+    ctx.fillStyle = g0;
+    ctx.beginPath(); ctx.arc(sx, sy, 13, 0, Math.PI * 2); ctx.fill();
+    // 目标身上的光斑（径向渐变 + 呼吸脉动；超射程封顶时随比例收回）
+    const R = (18 + 3 * Math.sin(game.t * 14)) * k;
+    const g = ctx.createRadialGradient(ex, ey, 1, ex, ey, R);
+    g.addColorStop(0, "rgba(255,250,255,0.95)");
+    g.addColorStop(0.35, "rgba(255,180,245,0.75)");
+    g.addColorStop(1, "rgba(255,150,230,0)");
     ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(sx, sy, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex, ey, R, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   },
 

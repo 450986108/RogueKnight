@@ -16,6 +16,8 @@ class Player {
     this.mult = { dmg: 1, as: H.as, spd: 1 };
     this.armor = H.armor; this.regen = H.regen;
     this.pickupR = P.pickup * H.pickup; this.xpMult = H.xp;
+    // 基础值快照：百分比强化/成长一律以初始值为基数加算（不随已强化数值放大）
+    this.base = { hp: this.maxHp, as: this.mult.as, spd: this.mult.spd, pickup: this.pickupR, xp: this.xpMult };
     this.crit = CONFIG.BASE_CRIT;
     this.slots = H.slots;
     // 初始武器：默认阔剑；秘法骑士自带双法杖
@@ -41,7 +43,7 @@ class Player {
   xpNeeded() { return CONFIG.xpNeeded(this.level); }
 
   /* 获得经验（不直接弹升级界面，由 Game 统一处理 pending 计数）。
-   * 每次升级附带固有成长：生命上限与攻击力小幅提升（数值见 CONFIG.LEVELUP_GROWTH） */
+   * 每次升级附带固有成长：生命上限与攻击力各加固定增量（数值见 CONFIG.LEVELUP_GROWTH） */
   gainXp(v) {
     this.xp += v;
     let ups = 0;
@@ -50,10 +52,9 @@ class Player {
       this.level++;
       ups++;
       const g = CONFIG.LEVELUP_GROWTH;
-      const add = this.maxHp * g.hpPct / 100;
-      this.maxHp += add;
-      this.hp = Math.min(this.maxHp, this.hp + add);
-      this.mult.dmg *= 1 + g.dmgPct / 100;
+      this.maxHp += g.hpFlat;
+      this.hp = Math.min(this.maxHp, this.hp + g.hpFlat);
+      this.mult.dmg += g.dmgFlat / 100;
     }
     return ups;
   }

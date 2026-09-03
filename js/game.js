@@ -362,21 +362,6 @@ class Game {
       .map(e => e.m);
   }
 
-  /* 光棱激光束：点到射线段的垂距判定（宽束穿透） */
-  monstersInBeam(x, y, ang, range, width) {
-    const cx = Math.cos(ang), cy = Math.sin(ang);
-    const out = [];
-    for (const m of this.monsters) {
-      if (m.dead) continue;
-      const dx = m.x - x, dy = (m.y - 26) - y;
-      const proj = dx * cx + dy * cy;
-      if (proj < -m.radius || proj > range) continue;
-      const perp = Math.abs(-dx * cy + dy * cx);
-      if (perp < width / 2 + m.radius) out.push(m);
-    }
-    return out;
-  }
-
   /* ---------------- 怪物生成 ---------------- */
   _spawn() {
     const w = CONFIG.LEVELS.weights[this.level - 1];

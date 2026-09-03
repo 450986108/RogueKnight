@@ -87,7 +87,7 @@ const CONFIG = {
   HERO_DEFAULT: "wanderer",      // 选人界面默认选中 / startRun 兜底
 
   /* ---------- 武器 ----------
-   * type: melee=近战扇形  fire=火焰锥  lightning=闪电链  proj=投射物  prism=引导激光
+   * type: melee=近战扇形  fire=火焰锥  lightning=闪电链  proj=投射物  prism=单体锁定激光
    * thrust: 直刺型动作（突刺/速刺/盾击，见 art2._meleePose 各武器专属曲线）
    * anim:   出手动作时长 s（蓄力→击发→收势的节奏，重武器更慢）
    * 全部武器都 designed 为可同时命中多个敌人 */
@@ -183,9 +183,9 @@ const CONFIG = {
     },
     prism: {
       name: "光棱法杖", type: "prism",
-      dmg: 2, cd: 0.16, range: 430, width: 30,
-      closeBonus: 1.0,           // 贴脸 ×2 → 射程端 ×1 线性递减
-      desc: "持续引导的激光束，距离越近伤害越高",
+      dmg: 2, cd: 0.16, range: 430,
+      closeBonus: 1.0,           // 贴脸 ×2 → 射程端 ×1 线性递减（单体：只照射锁定目标）
+      desc: "锁定单个敌人持续照射，距离越近伤害越高",
     },
     gravity: {
       name: "引力法杖", type: "proj",
@@ -252,13 +252,16 @@ const CONFIG = {
   xpNeeded: n => 8 + 4 * (n - 1) + Math.floor(0.35 * (n - 1) * (n - 1)),
 
   /* ---------- 升级固有成长 ----------
-   * 每次升级自动：生命上限 +hpPct%（并回复等量）、整体攻击力 +dmgPct%
-   * 幅度刻意低于怪物每关成长（血 +30%/关、伤 +12%/关），是选卡之外的保底成长 */
-  LEVELUP_GROWTH: { hpPct: 5, dmgPct: 2.5 },
+   * 每次升级自动：生命上限 +hpFlat（并回复等量）、攻击倍率 +dmgFlat%（加算、不随当前值放大）
+   * 固定增量幅度低于怪物每关成长（血 +30%/关、伤 +12%/关），是选卡之外的保底成长 */
+  LEVELUP_GROWTH: { hpFlat: 5, dmgFlat: 2.5 },
 
   /* ---------- 升级卡池 ----------
    * 强化幅度随强化等级递进：第 n 次获取同一强化时，幅度 = base + per ×(n-1)
-   * 例如 力量精进：第1次 +10%，第2次 +12.5%，第3次 +15%…… */
+   * 例如 力量精进：第1次 +10%，第2次 +12.5%，第3次 +15%……
+   * 百分比强化一律以角色基础值为基数加算（多次获取按基础值累加，不叠乘） */
+  /* 每种强化的获取次数上限：满级后不再进卡池（武器强化上限见 WEAPON_LVL.max，同为 5） */
+  UPGRADE_MAX: 5,
   UPGRADES: [
     { id: "hp",     name: "强健体魄", base: 15,  per: 3,   weight: 10,
       fmt: v => `生命上限 +${v}%，并立刻回复等量生命` },
