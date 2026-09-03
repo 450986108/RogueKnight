@@ -156,7 +156,7 @@ const CONFIG = {
     },
     chain: {
       name: "链刃", type: "melee",
-      dmg: 8, cd: 0.9, range: 285, arc: 12, thrust: true, anim: 0.36,
+      dmg: 12, cd: 0.9, range: 285, arc: 30, thrust: true, anim: 0.36,
       knockback: 0, gather: 480,   // 命中者被垂直拉到突刺中线上（沿线聚成一列，便于穿透/范围收割）
       desc: "超长距离直线突刺：穿透路径上的敌人，低伤但把他们拉到突刺中线上排成一列",
     },
