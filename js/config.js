@@ -258,7 +258,7 @@ const CONFIG = {
       fmt: v => `移动速度 +${v}%` },
     { id: "armor",  name: "加厚铠甲", base: 2,   per: 1,   weight: 10,
       fmt: v => `护甲 +${v}（受击伤害固定减免）` },
-    { id: "regen",  name: "圣光庇佑", base: 0.6, per: 0.2, weight: 9,
+    { id: "regen",  name: "圣光庇护", base: 0.6, per: 0.2, weight: 9,
       fmt: v => `每秒回复 ${v} 点生命` },
     { id: "pickup", name: "磁力护符", base: 30,  per: 5,   weight: 7,
       fmt: v => `经验拾取范围 +${v}%` },
