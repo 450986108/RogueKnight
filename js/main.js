@@ -282,7 +282,8 @@
     menuKnight.aim = 0.25 + Math.sin(t * 0.8) * 0.3;
     menuKnight.hero = UI.selectedHero;   // 主菜单大骑士 = 当前选中英雄
     // STELATO 纹章水印（骑士身后的品牌纹章，缓慢呼吸明暗）
-    Art.stelato(mkCtx, 120, 155, 116, {
+    Art.stelato(mkCtx, 120, 155, 100, {
+      light: true,
       alpha: 0.26 + 0.07 * (1 + Math.sin(t * 1.3)) / 2,
       glow: true,
     });
@@ -310,7 +311,7 @@
       pv.ctx.clearRect(0, 0, pv.w, pv.h);
       pv.ctx.setTransform(pv.s, 0, 0, pv.s, pv.tx, pv.ty);
       // 享界骑士（STELATO 原味甲）：卡片预览背后衬品牌纹章
-      if (pv.mock.hero === "astro") Art.stelato(pv.ctx, 0, -49, 46, { alpha: 0.55 });
+      if (pv.mock.hero === "astro") Art.stelato(pv.ctx, 0, -52, 42, { light: true, alpha: 0.55 });
       Art.knight(pv.ctx, pv.mock, pt);
     }
   }

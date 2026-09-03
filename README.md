@@ -4,7 +4,7 @@
 
 **🎮 在线游玩：<https://450986108.github.io/RogueKnight/>**
 
-![license](https://img.shields.io/badge/license-MIT-green) ![deps](https://img.shields.io/badge/dependencies-0-blue) ![size](https://img.shields.io/badge/payload-%3C250KB-orange)
+![license](https://img.shields.io/badge/license-MIT-green) ![deps](https://img.shields.io/badge/dependencies-0-blue) ![size](https://img.shields.io/badge/payload-%3C300KB-orange)
 
 ## 玩法
 
@@ -41,13 +41,14 @@ python -m http.server 8000
 
 ## 技术
 
-- **Canvas 2D 程序化绘制**：骑士、怪物、场景、特效全部由代码绘制，无任何图片资源
+- **Canvas 2D 程序化绘制**：骑士、怪物、场景、特效全部由代码绘制；仅 STELATO 品牌纹章使用贴图（深色原版 + 反色浅色版）
 - **WebAudio 合成音效**：攻击、受击、升级等音效实时合成，无音频文件
-- **总量 < 250KB**：9 个 JS + 1 个 CSS + 2 个 HTML，纯静态托管即可
+- **总量 < 300KB**：9 个 JS + 1 个 CSS + 2 个 HTML + 2 张纹章贴图，纯静态托管即可
 
 ```
 index.html        游戏入口
 editor.html       外观调参工具（开发用）
+img/              STELATO 品牌纹章贴图（stelato.png 深色 / stelato-light.png 浅色反色版）
 css/style.css     界面样式
 js/
   config.js       数值配置：武器/怪物/英雄/关卡

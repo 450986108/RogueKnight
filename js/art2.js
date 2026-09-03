@@ -1223,14 +1223,45 @@ const Ambient = {
 Object.assign(Art, {
 
   /* ============================================================
-   * STELATO 品牌纹章（参考 参考图/STELATO.png）：单色细线稿
-   * 盾形轮廓（平顶/垂直侧边/收尖弧底）+ 顶部四芒星 + 中央星轴
-   * （末端菱形尖端）+ 星轨弧带 + 两行星座点阵 + V 形星翼曲线
-   * (x,y)=纹章中心，w=宽度（高 = w×1.9）
-   * opts: { color 线色(默认银白), alpha 整体透明度, lw 线宽, glow 辉光 }
+   * STELATO 品牌纹章 —— 原图贴图优先（img/stelato.png 深色版、
+   * img/stelato-light.png 反色浅色版，由 参考图/STELATO.png 透明裁切生成）。
+   * 贴图未就绪（异步加载中 / Node 测试环境 / 加载失败）时回落到矢量线稿版。
    * ============================================================ */
+  stelatoImg: (typeof Image !== "undefined")
+    ? (() => { const i = new Image(); i.src = "img/stelato.png?v=1"; return i; })() : null,
+  stelatoLight: (typeof Image !== "undefined")
+    ? (() => { const i = new Image(); i.src = "img/stelato-light.png?v=1"; return i; })() : null,
+
+  /* 贴图就绪后回调一次（就绪 = 已加载完成；失败也回调，维持矢量版不重绘变图） */
+  stelatoOnReady(cb) {
+    const img = this.stelatoImg;
+    if (!img || (img.complete && img.naturalWidth)) { cb(); return; }
+    img.addEventListener("load", cb, { once: true });
+    img.addEventListener("error", cb, { once: true });
+  },
+
+  /* (x,y)=纹章中心，w=宽度（贴图高按原图纵横比 ≈ w×2.24；矢量版高 = w×1.9）
+   * opts: { light 浅色反色版(深底水印用), alpha 整体透明度, glow 辉光,
+   *         maxH 限高(贴图等比缩到不超过此高度), color/lw 仅矢量版生效 } */
   stelato(ctx, x, y, w, opts) {
     const o = opts || {};
+
+    // ---- 原图贴图优先 ----
+    const img = o.light ? this.stelatoLight : this.stelatoImg;
+    if (img && img.complete && img.naturalWidth) {
+      const ar = img.naturalHeight / img.naturalWidth;
+      let dw = w, dh = w * ar;
+      if (o.maxH != null && dh > o.maxH) { dh = o.maxH; dw = dh / ar; }
+      ctx.save();
+      if (o.alpha != null) ctx.globalAlpha *= o.alpha;
+      if (o.glow) { ctx.shadowColor = "rgba(205,225,255,0.8)"; ctx.shadowBlur = w * 0.10; }
+      ctx.drawImage(img, x - dw / 2, y - dh / 2, dw, dh);
+      ctx.restore();
+      return;
+    }
+
+    // ---- 矢量线稿兜底：盾形轮廓（平顶/垂直侧边/收尖弧底）+ 顶部四芒星
+    //      + 中央星轴（末端菱形尖端）+ 星轨弧带 + 两行星座点阵 + V 形星翼曲线 ----
     const h = w * 1.9;
     const col = o.color || "#E8ECF2";
     const lw = o.lw || Math.max(1, w * 0.022);

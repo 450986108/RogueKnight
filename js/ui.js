@@ -54,12 +54,19 @@ const UI = {
     $("btnMute").onclick = () => game.toggleMute();
     // 圣盾指示图标（一次性绘制）
     Art.icon(this.el.shieldIcon.getContext("2d"), "shield", 22);
-    // 面板 STELATO 纹章（胜利/暂停顶部，深墨线稿压印羊皮纸）
-    for (const id of ["vicEmblem", "pauseEmblem"]) {
-      const c = $(id);
-      if (c) Art.stelato(c.getContext("2d"), c.width / 2, c.height / 2, c.width * 0.82,
-        { color: "#5a3f1c", alpha: 0.8 });
-    }
+    // 面板 STELATO 纹章（胜利/暂停顶部，原图贴图压印羊皮纸；贴图异步就绪后重绘一次）
+    const drawPanelEmblems = () => {
+      for (const id of ["vicEmblem", "pauseEmblem"]) {
+        const c = $(id);
+        if (!c) continue;
+        const ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, c.width, c.height);
+        Art.stelato(ctx, c.width / 2, c.height / 2, c.width * 0.9,
+          { maxH: c.height * 0.98, alpha: 0.95 });
+      }
+    };
+    drawPanelEmblems();
+    Art.stelatoOnReady(drawPanelEmblems);
   },
 
   show(el) { el.classList.remove("hidden"); },
